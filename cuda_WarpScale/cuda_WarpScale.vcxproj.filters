@@ -1,0 +1,18 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="4.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <Filter Include="OpenBMP">
+      <UniqueIdentifier>{8bdff15d-435d-4421-8c98-3fc5bb3f4eff}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+  <ItemGroup>
+    <ClCompile Include="OpenBMP\OpenBMP.cpp">
+      <Filter>OpenBMP</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="OpenBMP\OpenBMP.hpp">
+      <Filter>OpenBMP</Filter>
+    </ClInclude>
+  </ItemGroup>
+</Project>
