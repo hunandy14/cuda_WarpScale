@@ -3,6 +3,8 @@
 
 #Userdefine
 *.bmp
+*.o
+*.out
 
 # User-specific files
 *.suo
