@@ -34,8 +34,8 @@ int main(){
 	Timer T;
 	double ratio = 1;
 	// 讀取
-	//ImgData src("img/test.bmp"); ratio = 1;
-	ImgData src("img/737400.bmp"); ratio = 1;
+	ImgData src("img/test.bmp"); ratio = 5;
+	//ImgData src("img/737400.bmp"); ratio = 1;
 
 	ImgData srcGray, dst, temp;
 	srcGray = src.toConvertGray();
