@@ -8,18 +8,19 @@ NVCCFLAGS :=
 NVCCFLAGS += -std=c++11
 NVCCFLAGS += -Xcompiler -fopenmp
 OPENCV := `pkg-config opencv --libs --cflags`
-CXXINC := -IOpenBMP -ICudaMem
+CXXINC := 
 
 # ================================================================
 all: bilinear_main.out
 
-run: bilinear_main.out
-	./uda_copyArr.out
+run: bilinear_main.out bilinear_main.o bilinear.o OpenBMP.o
+	./bilinear_main.out
+	
 clear:
 	rm -f *.o *.out
 
 # ================================================================
-bilinear_main.out: bilinear_main.o
+bilinear_main.out: bilinear_main.o bilinear.o OpenBMP.o
 	nvcc $(NVCCFLAGS) *.o -o bilinear_main.out $(OPENCV) $(CXXINC)
 
 

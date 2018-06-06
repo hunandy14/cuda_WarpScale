@@ -1,4 +1,4 @@
-/*****************************************************************
+ï»¿/*****************************************************************
 Name : 
 Date : 2018/01/08
 By   : CharlotteHonG
@@ -12,7 +12,7 @@ Final: 2018/01/08
 using namespace std;
 
 #include "bilinear.cuh"
-#include "OpenBMP.hpp"
+#include "OpenBMP/OpenBMP.hpp"
 #include "Timer.hpp"
 
 using uch = unsigned char;
@@ -32,14 +32,15 @@ vector<uch> touch(const float* img, size_t size) {
 
 int main(){
 	Timer T;
-	// Åª¨ú
-	ImgData src("img/test.bmp");
-	//ImgData src("737400.bmp");
+	double ratio = 1;
+	// è®€å–
+	//ImgData src("img/test.bmp"); ratio = 1;
+	ImgData src("img/737400.bmp"); ratio = 1;
+
 	ImgData srcGray, dst, temp;
 	srcGray = src.toConvertGray();
 
-	// GPU³t«×
-	double ratio = 5;
+	// GPUé€Ÿåº¦
 	vector<float> img_gpuRst, img_data = tofloat(srcGray.raw_img.data(), srcGray.size());
 	
 	T.start();
@@ -47,7 +48,7 @@ int main(){
 	T.print(" cuWarpScale_rgb");
 	dst.bmp("cutestImg.bmp");
 
-	// CPU³t«×
+	// CPUé€Ÿåº¦
 	T.start();
 	WarpScale_rgb(src, dst, ratio);
 	T.print(" WarpScale_rgb");

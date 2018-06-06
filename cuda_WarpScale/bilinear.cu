@@ -1,4 +1,4 @@
-/***************************************************************************************
+ï»¿/***************************************************************************************
 Name :
 Date : 2018/01/08
 By   : CharlotteHonG
@@ -15,7 +15,7 @@ using uch = unsigned char;
 
 
 //======================================================================================
-// §Ö³t½u©Ê´¡­È_®Ö¤ß
+// å¿«é€Ÿç·šæ€§æ’å€¼_æ ¸å¿ƒ
 __device__ __host__ static inline
 void cufast_Bilinear_rgb(unsigned char* p, 
 	const unsigned char* src, int w, int h, double y, double x)
@@ -23,16 +23,16 @@ void cufast_Bilinear_rgb(unsigned char* p,
 	int srcW = w;
 	int srcH = h;
 
-	// °_ÂI
+	// èµ·é»
 	int _x = (int)x;
 	int _y = (int)y;
-	// ¥ªÃä¤ñ­È
+	// å·¦é‚Šæ¯”å€¼
 	double l_x = x - (double)_x;
 	double r_x = 1.f - l_x;
 	double t_y = y - (double)_y;
 	double b_y = 1.f - t_y;
 
-	// ­pºâRGB
+	// è¨ˆç®—RGB
 	double R , G, B;
 	int x2 = (_x+1) > srcW -1? srcW -1: _x+1;
 	int y2 = (_y+1) > srcH-1? srcH-1: _y+1;
@@ -54,7 +54,7 @@ void cufast_Bilinear_rgb(unsigned char* p,
 	p[1] = (unsigned char) G;
 	p[2] = (unsigned char) B;
 }
-// §Ö³t½u©Ê´¡­È
+// å¿«é€Ÿç·šæ€§æ’å€¼
 __global__ void cuWarpScale_rgb_kernel(const uch* src, uch* dst, 
 	int w, int h, double ratio)
 {
@@ -66,17 +66,17 @@ __global__ void cuWarpScale_rgb_kernel(const uch* src, uch* dst,
 	int dstH = (int)(floor(srcH * ratio));
 	int dstW = (int)(floor(srcW * ratio));
 
-	// ÁY¤pªº­¿²v
+	// ç¸®å°çš„å€ç‡
 	double r1W = ((double)srcW )/(dstW );
 	double r1H = ((double)srcH)/(dstH);
-	// ©ñ¤jªº­¿²v
+	// æ”¾å¤§çš„å€ç‡
 	double r2W = (srcW -1.0)/(dstW -1.0);
 	double r2H = (srcH-1.0)/(dstH-1.0);
-	// ÁY¤p®É­Ôªº»~®t
+	// ç¸®å°æ™‚å€™çš„èª¤å·®
 	double deviW = ((srcW-1.0)  - (dstW -1.0)*(r1W)) /dstW;
 	double deviH = ((srcH-1.0) - (dstH-1.0)*(r1H)) /dstH;
 
-	if(i < srcW*ratio && j < srcH*ratio) { // ·|¦h¶]¤@ÂIÂI­n¾×±¼
+	if(i < srcW*ratio && j < srcH*ratio) { // æœƒå¤šè·‘ä¸€é»é»è¦æ“‹æ‰
 		double srcY, srcX;
 		if (ratio < 1.0) {
 			srcX = i*(r1W+deviW);
@@ -85,24 +85,25 @@ __global__ void cuWarpScale_rgb_kernel(const uch* src, uch* dst,
 			srcX = i*r2W;
 			srcY = j*r2H;
 		}
-		// Àò¨ú´¡¸É­È
+		// ç²å–æ’è£œå€¼
 		unsigned char* p = &dst[(j*dstW+ i) *3];
 		cufast_Bilinear_rgb(p, src, srcW, srcH, srcY, srcX);
 	}
 }
-__host__ void cuWarpScale_rgb(const ImgData & src, ImgData & dst, double ratio){
+__host__
+void cuWarpScale_rgb(const ImgData & src, ImgData & dst, double ratio){
 	Timer t;
-	// ªì©l¤ÆªÅ¶¡
+	// åˆå§‹åŒ–ç©ºé–“
 	dst.resize(src.width*ratio, src.height*ratio, src.bits);
-	// ­n¨DGPUªÅ¶¡
+	// è¦æ±‚GPUç©ºé–“
 	t.start();
 	CudaData<uch> gpuSrc(src.raw_img.data(), src.size());
 	CudaData<uch> gpuDst(dst.size());
 	t.print("  cudamalloc");
-	// ³]¸m°õ¦æºü
+	// è¨­ç½®åŸ·è¡Œç·’
 	dim3 block(BLOCK_DIM, BLOCK_DIM);
 	dim3 grid(ceil(dst.width / BLOCK_DIM), ceil(dst.width / BLOCK_DIM));
-	// °õ¦æ kernel
+	// åŸ·è¡Œ kernel
 	t.start();
 	cuWarpScale_rgb_kernel <<< grid, block >>> (gpuSrc, gpuDst, src.width, src.height, ratio);
 	t.print("  kernel");
@@ -112,15 +113,15 @@ __host__ void cuWarpScale_rgb(const ImgData & src, ImgData & dst, double ratio){
 
 
 //======================================================================================
-// §Ö³t½u©Ê´¡­È_®Ö¤ß
-static inline
+// å¿«é€Ÿç·šæ€§æ’å€¼_æ ¸å¿ƒ
+__device__ __host__ static inline
 void fast_Bilinear_rgb(unsigned char* p, 
 	const basic_ImgData& src, double y, double x)
 {
-	// °_ÂI
+	// èµ·é»
 	int _x = (int)x;
 	int _y = (int)y;
-	// ¥ªÃä¤ñ­È
+	// å·¦é‚Šæ¯”å€¼
 	double l_x = x - (double)_x;
 	double r_x = 1.f - l_x;
 	double t_y = y - (double)_y;
@@ -128,10 +129,10 @@ void fast_Bilinear_rgb(unsigned char* p,
 	int srcW = src.width;
 	int srcH = src.height;
 
-	// ­pºâRGB
+	// è¨ˆç®—RGB
 	double R , G, B;
-	int x2 = (_x+1) > src.width -1? src.width -1: _x+1;
-	int y2 = (_y+1) > src.height-1? src.height-1: _y+1;
+	int x2 = (_x+1) > srcW -1? srcW -1: _x+1;
+	int y2 = (_y+1) > srcH-1? srcH-1: _y+1;
 	R  = (double)src.raw_img[(_y * srcW + _x) *3 + 0] * (r_x * b_y);
 	G  = (double)src.raw_img[(_y * srcW + _x) *3 + 1] * (r_x * b_y);
 	B  = (double)src.raw_img[(_y * srcW + _x) *3 + 2] * (r_x * b_y);
@@ -149,31 +150,32 @@ void fast_Bilinear_rgb(unsigned char* p,
 	p[1] = (unsigned char) G;
 	p[2] = (unsigned char) B;
 }
-// §Ö³t½u©Ê´¡­È
+// å¿«é€Ÿç·šæ€§æ’å€¼
+__host__
 void WarpScale_rgb(const basic_ImgData &src, basic_ImgData &dst, double ratio){
-	// ¨¾§b
+	// é˜²å‘†
 	if (src.bits != 24) runtime_error("IMG is not 24bit.");
-	// ªì©l¤Æ dst
+	// åˆå§‹åŒ– dst
 	dst.width  = (int)((src.width  * ratio) +0.5);
 	dst.height = (int)((src.height * ratio) +0.5);
 	dst.bits   = src.bits;
 	dst.raw_img.resize(dst.width * dst.height * dst.bits>>3);
 
-	// ÁY¤pªº­¿²v
+	// ç¸®å°çš„å€ç‡
 	double r1W = ((double)src.width )/(dst.width );
 	double r1H = ((double)src.height)/(dst.height);
-	// ©ñ¤jªº­¿²v
+	// æ”¾å¤§çš„å€ç‡
 	double r2W = (src.width -1.0)/(dst.width -1.0);
 	double r2H = (src.height-1.0)/(dst.height-1.0);
-	// ÁY¤p®É­Ôªº»~®t
+	// ç¸®å°æ™‚å€™çš„èª¤å·®
 	double deviW = ((src.width-1.0)  - (dst.width -1.0)*(r1W)) /dst.width;
 	double deviH = ((src.height-1.0) - (dst.height-1.0)*(r1H)) /dst.height;
 
-	// ¶]·s¹Ï®y¼Ğ
+	// è·‘æ–°åœ–åº§æ¨™
 //#pragma omp parallel for
 	for (int j = 0; j < dst.height; ++j) {
 		for (int i = 0; i < dst.width; ++i) {
-			// ½Õ¾ã¹ï»ô
+			// èª¿æ•´å°é½Š
 			double srcY, srcX;
 			if (ratio < 1.0) {
 				//srcY = ((j+0.5f)/Ratio) - 0.5;
@@ -184,7 +186,7 @@ void WarpScale_rgb(const basic_ImgData &src, basic_ImgData &dst, double ratio){
 				srcX = i*r2W;
 				srcY = j*r2H;
 			}
-			// Àò¨ú´¡¸É­È
+			// ç²å–æ’è£œå€¼
 			unsigned char* p = &dst.raw_img[(j*dst.width + i) *3];
 			fast_Bilinear_rgb(p, src, srcY, srcX);
 		}
