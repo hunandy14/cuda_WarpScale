@@ -35,7 +35,7 @@ int main(){
 	Timer T;
 	// Åª¨ú
 	ImgData src("img//kanna.bmp");
-	ImgData srcGray, dst;
+	ImgData srcGray, dst, temp;
 	T.start();
 	srcGray = src.toConvertGray();
 	T.print("Âà¦Ç¶¥¹Ï");
@@ -48,7 +48,8 @@ int main(){
 	//time = biliner_share(img_gpuRst, img_data, srcGray.width, srcGray.height, ratio);
 	//time = biliner_CPU(img_gpuRst, img_data, srcGray.width, srcGray.height, ratio);
 
-	WarpScale_rgb(src, dst, 2);
+	WarpScale_rgb(src, temp, 2);
+	WarpScale_rgb(temp, dst, 0.5);
 	//dst.resize(srcGray);
 	//cucopy(srcGray.raw_img, dst.raw_img, srcGray.width, srcGray.height);
 	dst.bmp("copyImg.bmp");
