@@ -13,7 +13,6 @@ using namespace std;
 
 #include "bilinear.cuh"
 #include "OpenBMP.hpp"
-#include "CudaMem\CudaMem.cuh"
 #include "Timer.hpp"
 
 using uch = unsigned char;
@@ -34,31 +33,25 @@ vector<uch> touch(const float* img, size_t size) {
 int main(){
 	Timer T;
 	// 讀取
-	ImgData src("img//kanna.bmp");
+	ImgData src("img/test.bmp");
+	//ImgData src("737400.bmp");
 	ImgData srcGray, dst, temp;
-	T.start();
 	srcGray = src.toConvertGray();
-	T.print("轉灰階圖");
 
-	// 處理
+	// GPU速度
 	double ratio = 5;
 	vector<float> img_gpuRst, img_data = tofloat(srcGray.raw_img.data(), srcGray.size());
+	
+	T.start();
+	cuWarpScale_rgb(src, dst, ratio);
+	T.print(" cuWarpScale_rgb");
+	dst.bmp("cutestImg.bmp");
 
-	double time;
-	//time = biliner_share(img_gpuRst, img_data, srcGray.width, srcGray.height, ratio);
-	//time = biliner_CPU(img_gpuRst, img_data, srcGray.width, srcGray.height, ratio);
-
-	WarpScale_rgb(src, temp, 2);
-	WarpScale_rgb(temp, dst, 0.5);
-	//dst.resize(srcGray);
-	//cucopy(srcGray.raw_img, dst.raw_img, srcGray.width, srcGray.height);
-	dst.bmp("copyImg.bmp");
-
-	// 輸出
-	//vector<unsigned char> img_out =  touch(img_gpuRst.data(), img_gpuRst.size());
-	//string name = "img//Out-texture_"+to_string(time)+".bmp";
-	//string name = "GpuOut.bmp";
-	//OpenBMP::bmpWrite(name.c_str(), img_out, srcGray.width*ratio, srcGray.height*ratio, 8);
+	// CPU速度
+	T.start();
+	WarpScale_rgb(src, dst, ratio);
+	T.print(" WarpScale_rgb");
+	dst.bmp("testImg.bmp");
 
 	return 0;
 }
