@@ -163,7 +163,8 @@ struct basic_ImgData {
 	uint32_t height;
 	uint16_t bits;
 
-	operator cubasic_ImgData() const{
+
+	operator cubasic_ImgData() {
 		cubasic_ImgData temp;
 		temp.raw_img = (unsigned char*)raw_img.data();
 		temp.width = width;

@@ -15,6 +15,7 @@
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="bilinear.cuh" />
+    <ClInclude Include="CudaMem\CudaMem.cuh" />
     <ClInclude Include="OpenBMP\OpenBMP.hpp" />
   </ItemGroup>
   <ItemGroup>

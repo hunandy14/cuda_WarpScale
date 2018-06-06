@@ -15,7 +15,7 @@ using namespace std;
 #include "Timer.hpp"
 #include "bilinear.cuh"
 
-#define BLOCK_DIM 16
+#define BLOCK_DIM 16.0
 
 using uch = unsigned char;
 
@@ -119,8 +119,6 @@ __host__ double biliner_share(vector<float>& dst, const vector<float>& src,
 	return T;
 }
 
-
-
 //======================================================================================
 __host__ void biliner_CPU_core(vector<float>& img, const vector<float>& img_ori, 
 	size_t width, size_t height, float Ratio)
@@ -158,13 +156,47 @@ __host__ double biliner_CPU(vector<float>& dst, const vector<float>& src,
 	return T;
 }
 
-
 //======================================================================================
+__global__ void copy_kernel(uch* dst, const uch* src, int srcW, int srcH) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(i < srcW && j < srcH) {
+		dst[j*srcW + i] = src[j*srcW + i];
+	}
+}
+
+void cutest() {
+	// 要求GPU空間
+	CudaData<uch> gpu_src(9);
+	CudaData<uch> gpu_dst(9);
+
+	vector<uch> arr(9), arr2(9);
+	for(size_t i = 0; i < 9; i++) {
+		arr[i] = i;
+	}
+	gpu_src.memcpyIn(arr.data(), 9);
+
+	// 設置執行緒
+	dim3 block(BLOCK_DIM, BLOCK_DIM);
+	dim3 grid(3, 3);
+	copy_kernel <<< grid, block >> > (gpu_dst, gpu_src, 3, 3);
+
+	gpu_dst.memcpyOut(arr2.data(), 9);
+	for(size_t i = 0; i < 9; i++) {
+		cout << (int)arr2[i] << endl;
+	}
+}
+//======================================================================================
+
+
 // 快速線性插值_核心
-static inline
+__device__
 void cufast_Bilinear_rgb(unsigned char* p, 
-	const cubasic_ImgData& src, double y, double x)
+	const unsigned char* src, int w, int h, double y, double x)
 {
+	int srcW = w;
+	int srcH = h;
+
 	// 起點
 	int _x = (int)x;
 	int _y = (int)y;
@@ -173,55 +205,54 @@ void cufast_Bilinear_rgb(unsigned char* p,
 	double r_x = 1.f - l_x;
 	double t_y = y - (double)_y;
 	double b_y = 1.f - t_y;
-	int srcW = src.width;
-	int srcH = src.height;
 
 	// 計算RGB
 	double R , G, B;
-	int x2 = (_x+1) > src.width -1? src.width -1: _x+1;
-	int y2 = (_y+1) > src.height-1? src.height-1: _y+1;
-	R  = (double)src.raw_img[(_y * srcW + _x) *3 + 0] * (r_x * b_y);
-	G  = (double)src.raw_img[(_y * srcW + _x) *3 + 1] * (r_x * b_y);
-	B  = (double)src.raw_img[(_y * srcW + _x) *3 + 2] * (r_x * b_y);
-	R += (double)src.raw_img[(_y * srcW + x2) *3 + 0] * (l_x * b_y);
-	G += (double)src.raw_img[(_y * srcW + x2) *3 + 1] * (l_x * b_y);
-	B += (double)src.raw_img[(_y * srcW + x2) *3 + 2] * (l_x * b_y);
-	R += (double)src.raw_img[(y2 * srcW + _x) *3 + 0] * (r_x * t_y);
-	G += (double)src.raw_img[(y2 * srcW + _x) *3 + 1] * (r_x * t_y);
-	B += (double)src.raw_img[(y2 * srcW + _x) *3 + 2] * (r_x * t_y);
-	R += (double)src.raw_img[(y2 * srcW + x2) *3 + 0] * (l_x * t_y);
-	G += (double)src.raw_img[(y2 * srcW + x2) *3 + 1] * (l_x * t_y);
-	B += (double)src.raw_img[(y2 * srcW + x2) *3 + 2] * (l_x * t_y);
+	int x2 = (_x+1) > srcW -1? srcW -1: _x+1;
+	int y2 = (_y+1) > srcH-1? srcH-1: _y+1;
+
+	R  = (double)src[(_y * srcW + _x) *3 + 0] * (r_x * b_y);
+	G  = (double)src[(_y * srcW + _x) *3 + 1] * (r_x * b_y);
+	B  = (double)src[(_y * srcW + _x) *3 + 2] * (r_x * b_y);
+	R += (double)src[(_y * srcW + x2) *3 + 0] * (l_x * b_y);
+	G += (double)src[(_y * srcW + x2) *3 + 1] * (l_x * b_y);
+	B += (double)src[(_y * srcW + x2) *3 + 2] * (l_x * b_y);
+	R += (double)src[(y2 * srcW + _x) *3 + 0] * (r_x * t_y);
+	G += (double)src[(y2 * srcW + _x) *3 + 1] * (r_x * t_y);
+	B += (double)src[(y2 * srcW + _x) *3 + 2] * (r_x * t_y);
+	R += (double)src[(y2 * srcW + x2) *3 + 0] * (l_x * t_y);
+	G += (double)src[(y2 * srcW + x2) *3 + 1] * (l_x * t_y);
+	B += (double)src[(y2 * srcW + x2) *3 + 2] * (l_x * t_y);
 
 	p[0] = (unsigned char) R;
 	p[1] = (unsigned char) G;
 	p[2] = (unsigned char) B;
 }
+
 // 快速線性插值
-__global__ void cuWarpScale_rgb(const cubasic_ImgData &src, cubasic_ImgData &dst, double ratio){
+__global__ void cuWarpScale_rgb(const uch* src, uch* dst, 
+	int w, int h, double ratio)
+{
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
 
-	// 初始化 dst
-	dst.width  = (int)((src.width  * ratio) +0.5);
-	dst.height = (int)((src.height * ratio) +0.5);
-	dst.bits   = src.bits;
+	int srcH=h;
+	int srcW=w;
+	int dstH = (int)((srcH* ratio) +0.5);
+	int dstW = (int)((srcW* ratio) +0.5);
 
-	int srcH=src.height;
-	int srcW=src.width;
-	//dst.raw_img.resize(dst.width * dst.height * dst.bits>>3);
 	int newH = (int)(floor(srcH * ratio));
 	int newW = (int)(floor(srcW * ratio));
 
 	// 縮小的倍率
-	double r1W = ((double)src.width )/(dst.width );
-	double r1H = ((double)src.height)/(dst.height);
+	double r1W = ((double)srcW )/(dstW );
+	double r1H = ((double)srcH)/(dstH);
 	// 放大的倍率
-	double r2W = (src.width -1.0)/(dst.width -1.0);
-	double r2H = (src.height-1.0)/(dst.height-1.0);
+	double r2W = (srcW -1.0)/(dstW -1.0);
+	double r2H = (srcH-1.0)/(dstH-1.0);
 	// 縮小時候的誤差
-	double deviW = ((src.width-1.0)  - (dst.width -1.0)*(r1W)) /dst.width;
-	double deviH = ((src.height-1.0) - (dst.height-1.0)*(r1H)) /dst.height;
+	double deviW = ((srcW-1.0)  - (dstW -1.0)*(r1W)) /dstW;
+	double deviH = ((srcH-1.0) - (dstH-1.0)*(r1H)) /dstH;
 
 	// 跑新圖座標
 	if(i < srcW*ratio && j < srcH*ratio) {
@@ -235,17 +266,47 @@ __global__ void cuWarpScale_rgb(const cubasic_ImgData &src, cubasic_ImgData &dst
 			srcY = j*r2H;
 		}
 
+		// 複製圖測試
+		/*int srcIdx = (j*srcW + i) *3;
+		dst[srcIdx+0] = src[srcIdx+0];
+		dst[srcIdx+1] = src[srcIdx+1];
+		dst[srcIdx+2] = src[srcIdx+2];*/
+
 		// 獲取插補值
-		//unsigned char* p = &dst.raw_img[(j*dst.width + i) *3];
+		unsigned char* p = &dst[(j*dstW+ i) *3];
+		p[0] = 255;
 		if (ratio>1) {
-			//cufast_Bilinear_rgb(p, src, srcY, srcX);
+			//cufast_Bilinear_rgb(p, src, srcW, srcH, srcY, srcX);
 		} else {
-			//cufast_Bilinear_rgb(p, src, srcY, srcX);
+			//cufast_Bilinear_rgb(p, src, srcW, srcH, srcY, srcX);
 		}
 	}
 }
 
+/*__global__ void cuWarpScale_rgb(uch* dst, const uch* src, int srcW, int srcH, double ratio) {
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(i < srcW && j < srcH) {
+		dst[j*srcW + i] = src[j*srcW + i];
+	}
+}*/
 
-__host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio){
 
+__host__ void WarpScale_rgb(const ImgData & src, ImgData & dst, double ratio){
+	ratio=2;
+	// 初始化空間
+	dst.resize(src.width*ratio, src.height*ratio, src.bits);
+
+	// 要求GPU空間
+	CudaData<uch> gpuSrc(src.raw_img.data(), src.size());
+	CudaData<uch> gpuDst(dst.size());
+
+	// 設置執行緒
+	dim3 block(BLOCK_DIM, BLOCK_DIM);
+	dim3 grid(ceil(dst.width / BLOCK_DIM), ceil(dst.width / BLOCK_DIM));
+	// 執行 kernel
+	//cuWarpScale_rgb <<< grid, block >>> (gpuSrc, gpuDst, dst.width, dst.height, ratio);
+	//gpuDst.memcpyOut(dst.raw_img.data(), dst.size());
+
+	dst.bmp("_test.bmp");
 }

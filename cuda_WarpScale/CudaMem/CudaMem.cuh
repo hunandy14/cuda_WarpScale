@@ -57,6 +57,9 @@ public:
 	operator T*() {
 		return gpuData;
 	}
+	operator const T*() const {
+		return gpuData;
+	}
 private:
 	T* gpuData = nullptr;
 	size_t len = 0;

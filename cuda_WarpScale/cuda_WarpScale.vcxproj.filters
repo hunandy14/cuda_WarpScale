@@ -9,10 +9,16 @@
     <ClCompile Include="OpenBMP\OpenBMP.cpp">
       <Filter>OpenBMP</Filter>
     </ClCompile>
+    <ClCompile Include="bilinear_main.cu" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenBMP\OpenBMP.hpp">
       <Filter>OpenBMP</Filter>
     </ClInclude>
+    <ClInclude Include="bilinear.cuh" />
+    <ClInclude Include="CudaMem\CudaMem.cuh" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="bilinear.cu" />
   </ItemGroup>
 </Project>

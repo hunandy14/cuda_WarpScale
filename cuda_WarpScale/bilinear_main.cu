@@ -34,28 +34,30 @@ vector<uch> touch(const float* img, size_t size) {
 int main(){
 	Timer T;
 	// 讀取
-	ImgData src("img//kanna.bmp"), dst;
+	ImgData src("img//kanna.bmp");
+	ImgData srcGray, dst;
 	T.start();
-	src.convertGray();
+	srcGray = src.toConvertGray();
 	T.print("轉灰階圖");
 
 	// 處理
 	double ratio = 5;
-	vector<float> img_gpuRst, img_data = tofloat(src.raw_img.data(), src.size());
+	vector<float> img_gpuRst, img_data = tofloat(srcGray.raw_img.data(), srcGray.size());
 
 	double time;
-	time = biliner_share(img_gpuRst, img_data, src.width, src.height, ratio);
-	//time = biliner_CPU(img_gpuRst, img_data, src.width, src.height, ratio);
+	//time = biliner_share(img_gpuRst, img_data, srcGray.width, srcGray.height, ratio);
+	//time = biliner_CPU(img_gpuRst, img_data, srcGray.width, srcGray.height, ratio);
 
-	//dst.resize(src.width*ratio, src.height*ratio, src.bits);
-	WarpScale_rgb(src, dst, ratio);
-
+	WarpScale_rgb(src, dst, 2);
+	//dst.resize(srcGray);
+	//cucopy(srcGray.raw_img, dst.raw_img, srcGray.width, srcGray.height);
+	dst.bmp("copyImg.bmp");
 
 	// 輸出
-	vector<unsigned char> img_out =  touch(img_gpuRst.data(), img_gpuRst.size());
+	//vector<unsigned char> img_out =  touch(img_gpuRst.data(), img_gpuRst.size());
 	//string name = "img//Out-texture_"+to_string(time)+".bmp";
-	string name = "GpuOut.bmp";
-	OpenBMP::bmpWrite(name.c_str(), img_out, src.width*ratio, src.height*ratio, 8);
+	//string name = "GpuOut.bmp";
+	//OpenBMP::bmpWrite(name.c_str(), img_out, srcGray.width*ratio, srcGray.height*ratio, 8);
 
 	return 0;
 }
