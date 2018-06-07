@@ -1,4 +1,4 @@
-/*****************************************************************
+﻿/*****************************************************************
 Name : 
 Date : 2018/01/09
 By   : CharlotteHonG
@@ -12,7 +12,11 @@ template <class T>
 class CudaData_type {
 
 };
-// Cuda �O����۰ʺ޲z�{��
+
+
+
+
+// Cuda 記憶體自動管理程序
 template <class T>
 class CudaData {
 public:
@@ -64,7 +68,13 @@ private:
 	T* gpuData = nullptr;
 	size_t len = 0;
 };
-// CudaArr �O����۰ʺ޲z�{��
+
+// 第一次malloc非常耗時
+static CudaData<int> __CudaDataInit__(0);
+
+
+
+// CudaArr 記憶體自動管理程序
 template <class T>
 class CudaMemArr {
 public:

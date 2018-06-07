@@ -11,8 +11,8 @@ Final: 2018/01/08
 #include <string>
 using namespace std;
 
-#include "bilinear.cuh"
-#include "OpenBMP/OpenBMP.hpp"
+#include "bilinear.hpp"
+#include "OpenBMP.hpp"
 #include "Timer.hpp"
 
 using uch = unsigned char;
@@ -31,6 +31,7 @@ vector<uch> touch(const float* img, size_t size) {
 }
 
 int main(){
+
 	Timer T;
 	double ratio = 1;
 	// 讀取
