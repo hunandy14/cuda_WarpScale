@@ -9,7 +9,7 @@ Final: 2018/01/08
 #include <cmath>
 using namespace std;
 
-#include "bilinear.hpp"
+#include "cubilinear.hpp"
 #define BLOCK_DIM 16.0
 
 using uch = unsigned char;
@@ -93,23 +93,28 @@ void cuWarpScale_rgb_kernel(const uch* src, uch* dst,
 	}
 }
 __host__
-void cuWarpScale_rgb(const ImgData & src, ImgData & dst, double ratio){
+void cuWarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio){
 	Timer t;
 	// 初始化空間
 	//t.start();
-	dst.resize(src.width*ratio, src.height*ratio, src.bits);
+	// 初始化 dst
+	dst.width  = (int)((src.width  * ratio) +0.5);
+	dst.height = (int)((src.height * ratio) +0.5);
+	dst.bits   = src.bits;
+	dst.raw_img.resize(dst.width * dst.height * dst.bits>>3);
 	//t.print("  resize");
+
 	// 要求GPU空間
 	//t.start();
-	CudaData<uch> gpuSrc(src.size());
+	CudaData<uch> gpuSrc(src.raw_img.size());
 	//t.print("  cudamalloc gpuSrc");
 	//t.start();
-	CudaData<uch> gpuDst(dst.size());
+	CudaData<uch> gpuDst(dst.raw_img.size());
 	//t.print("  cudamalloc gpuDst");
 
 	// 複製資料
 	// t.start();/
-	gpuSrc.memcpyIn(src.raw_img.data(), src.size());
+	gpuSrc.memcpyIn(src.raw_img.data(), src.raw_img.size());
 	// t.print("  memcpyIn");
 
 	// 設置執行緒
@@ -123,7 +128,7 @@ void cuWarpScale_rgb(const ImgData & src, ImgData & dst, double ratio){
 
 	// 複製資料
 	// t.start();
-	gpuDst.memcpyOut(dst.raw_img.data(), dst.size());
+	gpuDst.memcpyOut(dst.raw_img.data(), dst.raw_img.size());
 	// t.print("  memcpyOut");
 
 

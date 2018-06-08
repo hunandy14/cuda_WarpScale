@@ -8,8 +8,11 @@ NVCCFLAGS :=
 NVCCFLAGS += -O3
 NVCCFLAGS += -std=c++11
 NVCCFLAGS += -Xcompiler -fopenmp
+
 OPENCV := `pkg-config opencv --libs --cflags`
+
 CXXINC := -IOpenBMP
+CXXINC += -ICudaMem
 
 # ================================================================
 all: bilinear_main.out
@@ -28,7 +31,7 @@ bilinear_main.out: bilinear_main.o bilinear.o OpenBMP.o
 
 bilinear_main.o: bilinear_main.cpp
 	nvcc $(NVCCFLAGS) -c bilinear_main.cpp $(OPENCV) $(CXXINC)
-bilinear.o: bilinear.cu bilinear.hpp
-	nvcc $(NVCCFLAGS) -c bilinear.cu $(OPENCV) $(CXXINC)
+bilinear.o: cubilinear/cubilinear.cu cubilinear/cubilinear.hpp
+	nvcc $(NVCCFLAGS) -c cubilinear/cubilinear.cu $(OPENCV) $(CXXINC)
 OpenBMP.o: OpenBMP/OpenBMP.cpp OpenBMP/OpenBMP.hpp
 	nvcc $(NVCCFLAGS) -c OpenBMP/OpenBMP.cpp $(OPENCV) $(CXXINC)

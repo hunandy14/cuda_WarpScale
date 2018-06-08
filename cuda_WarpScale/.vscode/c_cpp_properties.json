@@ -11,7 +11,8 @@
             "includePath": [
                 "${workspaceFolder}",
                 "/usr/local/cuda-9.0/include",
-                "${workspaceFolder}/OpenBMP"
+                "${workspaceFolder}/OpenBMP",
+                "${workspaceFolder}/CudaMem"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

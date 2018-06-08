@@ -11,7 +11,7 @@ Final: 2018/01/08
 #include <string>
 using namespace std;
 
-#include "bilinear.hpp"
+#include "cubilinear/cubilinear.hpp"
 #include "OpenBMP.hpp"
 #include "Timer.hpp"
 
@@ -39,6 +39,7 @@ int main(){
 	//ImgData src("img/737400.bmp"); ratio = 1;
 
 	ImgData srcGray, dst, temp;
+	dst.resize(src.width*ratio, src.height*ratio, src.bits);
 	srcGray = src.toConvertGray();
 
 	// GPU速度
