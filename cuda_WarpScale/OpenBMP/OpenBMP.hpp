@@ -149,7 +149,7 @@ public:
 
 
 //----------------------------------------------------------------
-#define ENABLE_CU_DATA
+// #define ENABLE_CU_DATA
 #ifdef ENABLE_CU_DATA
 struct cubasic_ImgData {
 	unsigned char* raw_img;

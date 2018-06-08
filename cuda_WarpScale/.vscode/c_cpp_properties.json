@@ -12,7 +12,8 @@
                 "${workspaceFolder}",
                 "/usr/local/cuda-9.0/include",
                 "${workspaceFolder}/OpenBMP",
-                "${workspaceFolder}/CudaMem"
+                "${workspaceFolder}/CudaMem",
+                "${workspaceFolder}/Timer"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",
