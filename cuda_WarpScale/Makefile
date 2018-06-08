@@ -13,6 +13,7 @@ OPENCV := `pkg-config opencv --libs --cflags`
 
 CXXINC := -IOpenBMP
 CXXINC += -ICudaMem
+CXXINC += -ITimer
 
 # ================================================================
 all: bilinear_main.out
