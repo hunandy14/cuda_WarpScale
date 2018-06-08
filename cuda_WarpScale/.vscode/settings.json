@@ -5,5 +5,6 @@
     },
     // 控制字型家族。
     "editor.fontFamily": "'Hack', 'Droid Sans Mono', 'monospace', monospace, 'Droid Sans Fallback'",
-
+     // 控制字型大小 (以像素為單位)。
+    "editor.fontSize": 16,
 }

@@ -56,7 +56,8 @@ void cufast_Bilinear_rgb(unsigned char* p,
 	p[2] = (unsigned char) B;
 }
 // 快速線性插值
-__global__ void cuWarpScale_rgb_kernel(const uch* src, uch* dst, 
+__global__ 
+void cuWarpScale_rgb_kernel(const uch* src, uch* dst, 
 	int w, int h, double ratio)
 {
 	int srcH=h;
@@ -95,35 +96,40 @@ __host__
 void cuWarpScale_rgb(const ImgData & src, ImgData & dst, double ratio){
 	Timer t;
 	// 初始化空間
-	t.start();
+	//t.start();
 	dst.resize(src.width*ratio, src.height*ratio, src.bits);
-	t.print("  resize");
+	//t.print("  resize");
 	// 要求GPU空間
-	t.start();
+	//t.start();
 	CudaData<uch> gpuSrc(src.size());
-	t.print("  cudamalloc gpuSrc");
-	t.start();
+	//t.print("  cudamalloc gpuSrc");
+	//t.start();
 	CudaData<uch> gpuDst(dst.size());
-	t.print("  cudamalloc gpuDst");
+	//t.print("  cudamalloc gpuDst");
 
 	// 複製資料
-	t.start();
+	// t.start();/
 	gpuSrc.memcpyIn(src.raw_img.data(), src.size());
-	t.print("  memcpyIn");
+	// t.print("  memcpyIn");
 
 	// 設置執行緒
 	dim3 block(BLOCK_DIM, BLOCK_DIM);
 	dim3 grid(ceil(dst.width / BLOCK_DIM), ceil(dst.width / BLOCK_DIM));
 
 	// 執行 kernel
-	t.start();
+	// t.start();
 	cuWarpScale_rgb_kernel <<< grid, block >>> (gpuSrc, gpuDst, src.width, src.height, ratio);
-	t.print("  kernel");
+	// t.print("  kernel");
 
 	// 複製資料
-	t.start();
+	// t.start();
 	gpuDst.memcpyOut(dst.raw_img.data(), dst.size());
-	t.print("  memcpyOut");
+	// t.print("  memcpyOut");
+
+
+	// t.start();
+	gpuDst.~CudaData<uch>();
+	// t.print("  dctor");
 }
 
 
