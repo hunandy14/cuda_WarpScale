@@ -4,21 +4,33 @@
     <Filter Include="OpenBMP">
       <UniqueIdentifier>{8bdff15d-435d-4421-8c98-3fc5bb3f4eff}</UniqueIdentifier>
     </Filter>
+    <Filter Include="bilinear">
+      <UniqueIdentifier>{d068df30-3d84-4fae-95c6-dd8287da2372}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="CudaMem">
+      <UniqueIdentifier>{6cf22ab1-5f79-4d8b-9884-f19aa633bdd0}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OpenBMP\OpenBMP.cpp">
       <Filter>OpenBMP</Filter>
     </ClCompile>
-    <ClCompile Include="bilinear_main.cu" />
+    <ClCompile Include="bilinear_main.cpp" />
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenBMP\OpenBMP.hpp">
       <Filter>OpenBMP</Filter>
     </ClInclude>
-    <ClInclude Include="bilinear.cuh" />
-    <ClInclude Include="CudaMem\CudaMem.cuh" />
+    <ClInclude Include="CudaMem\CudaMem.cuh">
+      <Filter>CudaMem</Filter>
+    </ClInclude>
+    <ClInclude Include="cubilinear\cubilinear.hpp">
+      <Filter>bilinear</Filter>
+    </ClInclude>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="bilinear.cu" />
+    <CudaCompile Include="cubilinear\cubilinear.cu">
+      <Filter>bilinear</Filter>
+    </CudaCompile>
   </ItemGroup>
 </Project>

@@ -11,16 +11,16 @@
     </ProjectConfiguration>
   </ItemGroup>
   <ItemGroup>
-    <CudaCompile Include="bilinear.cu" />
-  </ItemGroup>
-  <ItemGroup>
-    <ClInclude Include="bilinear.cuh" />
+    <ClInclude Include="cubilinear\cubilinear.hpp" />
     <ClInclude Include="CudaMem\CudaMem.cuh" />
     <ClInclude Include="OpenBMP\OpenBMP.hpp" />
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="bilinear_main.cu" />
+    <ClCompile Include="bilinear_main.cpp" />
     <ClCompile Include="OpenBMP\OpenBMP.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <CudaCompile Include="cubilinear\cubilinear.cu" />
   </ItemGroup>
   <PropertyGroup Label="Globals">
     <ProjectGuid>{103D10AB-859A-4076-81F5-D3228FBD83E5}</ProjectGuid>
@@ -82,7 +82,7 @@ copy "$(CudaToolkitBinDir)\cudart*.dll" "$(OutDir)"</Command>
       <FunctionLevelLinking>true</FunctionLevelLinking>
       <IntrinsicFunctions>true</IntrinsicFunctions>
       <PreprocessorDefinitions>WIN32;WIN64;NDEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\OpenBMP;$(CudaToolkitIncludeDir);%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\OpenBMP;$(CudaToolkitIncludeDir);$(ProjectDir)\CudaMem;$(ProjectDir)\cubilinear;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
