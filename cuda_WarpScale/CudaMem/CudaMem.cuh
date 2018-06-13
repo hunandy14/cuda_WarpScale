@@ -28,7 +28,7 @@ public:
 		malloc(size);
 		memcpyIn(dataIn, size);
 	}
-	~CudaData(){
+	virtual ~CudaData(){
 		if(gpuData!=nullptr) {
 			cudaFree(gpuData);
 			gpuData = nullptr;

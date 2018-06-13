@@ -13,26 +13,6 @@ using namespace std;
 #define BLOCK_DIM 16.0
 
 using uch = unsigned char;
-/*void cuda_in(const basic_ImgData& src, cubasic_ImgData& dst) {
-	CudaData<uch> gg(src.raw_img.size());
-	gg.memcpyIn(src.raw_img.data(), src.raw_img.size());
-	
-	dst.raw_img = gg;
-	dst.width   = src.width;
-	dst.height  = src.height;
-	dst.bits    = src.bits;
-}
-void cuda_out(const cubasic_ImgData src, basic_ImgData dst) {
-	dst.raw_img.resize(src.width * src.height * 3);
-	CudaData<uch> gg;
-	gg.gpuData = src.raw_img;
-	gg.len = src.width*src.height*3;
-	gg.memcpyOut(dst.raw_img.data(), src.width*src.height*3);
-
-	dst.width  = src.width;
-	dst.height = src.height;
-	dst.bits   = src.bits;
-}*/
 //======================================================================================
 // 快速線性插值_核心
 __device__ __host__ static inline
@@ -111,6 +91,63 @@ void cuWarpScale_kernel(const uch* src, uch* dst,
 		fast_Bilinear(src, w, h, p, srcY, srcX);
 	}
 }
+// GPU 線性插值
+__host__
+void WarpScale_rgb_test(const cuImgData & uSrc, cuImgData & uDst, double ratio) {
+	// 設置大小
+	if(uDst.width != uSrc.width*ratio && uDst.height != uSrc.height*ratio
+		&& uDst.bits != uSrc.bits) 
+	{
+		uDst.resize(uSrc.width*ratio, uSrc.height*ratio, uSrc.bits);
+	}
+	// 設置執行緒
+	dim3 block(BLOCK_DIM, BLOCK_DIM);
+	dim3 grid(ceil(uDst.width / BLOCK_DIM), ceil(uDst.width / BLOCK_DIM));
+	// 執行 kernel
+	cuWarpScale_kernel <<< grid, block >>> (uSrc, uDst, uSrc.width, uSrc.height, ratio);
+}
+// CPU快速線性插值
+__host__
+void WarpScale_rgb(const basic_ImgData &src, basic_ImgData &dst, double ratio){
+	// 防呆
+	if (src.bits != 24) runtime_error("IMG is not 24bit.");
+	// 初始化 dst
+	dst.width  = (int)((src.width  * ratio) +0.5);
+	dst.height = (int)((src.height * ratio) +0.5);
+	dst.bits   = src.bits;
+	dst.raw_img.resize(dst.width * dst.height * dst.bits>>3);
+
+	// 縮小的倍率
+	double r1W = ((double)src.width )/(dst.width );
+	double r1H = ((double)src.height)/(dst.height);
+	// 放大的倍率
+	double r2W = (src.width -1.0)/(dst.width -1.0);
+	double r2H = (src.height-1.0)/(dst.height-1.0);
+	// 縮小時候的誤差
+	double deviW = ((src.width-1.0)  - (dst.width -1.0)*(r1W)) /dst.width;
+	double deviH = ((src.height-1.0) - (dst.height-1.0)*(r1H)) /dst.height;
+
+	// 跑新圖座標
+//#pragma omp parallel for
+	for (int j = 0; j < dst.height; ++j) {
+		for (int i = 0; i < dst.width; ++i) {
+			// 調整對齊
+			double srcY, srcX;
+			if (ratio < 1.0) {
+				srcX = i*(r1W+deviW);
+				srcY = j*(r1H+deviH);
+			} else if (ratio >= 1.0) {
+				srcX = i*r2W;
+				srcY = j*r2H;
+			}
+			// 獲取插補值
+			unsigned char* p = &dst.raw_img[(j*dst.width + i) *3];
+			fast_Bilinear(src.raw_img.data(), src.width, src.height, p, srcY, srcX);
+		}
+	}
+}
+//======================================================================================
+
 // 測試 cuWarpScale_kernel
 __host__
 void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio){
@@ -156,70 +193,3 @@ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, dou
 	gpuDst.~CudaData<uch>();
 	// t.print("  dctor");
 }
-// GPU 線性插值
-__host__
-void WarpScale_rgb_test(const basic_ImgData & src, basic_ImgData & dst, double ratio) {
-	Timer t;
-
-	// 要求GPU空間
-	cuImgData uSrc(src);
-	cuImgData uDst(dst.raw_img.size());
-
-	// 設置執行緒
-	dim3 block(BLOCK_DIM, BLOCK_DIM);
-	dim3 grid(ceil(dst.width / BLOCK_DIM), ceil(dst.width / BLOCK_DIM));
-
-	// 執行 kernel
-	// t.start();
-	cuWarpScale_kernel <<< grid, block >>> (uSrc, uDst, src.width, src.height, ratio);
-	// t.print("  kernel");
-
-	// 複製資料
-	uDst.out(dst);
-	
-	t.print(" cuWarpScale_rgb");
-}
-
-// CPU快速線性插值
-__host__
-void WarpScale_rgb(const basic_ImgData &src, basic_ImgData &dst, double ratio){
-	// 防呆
-	if (src.bits != 24) runtime_error("IMG is not 24bit.");
-	// 初始化 dst
-	dst.width  = (int)((src.width  * ratio) +0.5);
-	dst.height = (int)((src.height * ratio) +0.5);
-	dst.bits   = src.bits;
-	dst.raw_img.resize(dst.width * dst.height * dst.bits>>3);
-
-	// 縮小的倍率
-	double r1W = ((double)src.width )/(dst.width );
-	double r1H = ((double)src.height)/(dst.height);
-	// 放大的倍率
-	double r2W = (src.width -1.0)/(dst.width -1.0);
-	double r2H = (src.height-1.0)/(dst.height-1.0);
-	// 縮小時候的誤差
-	double deviW = ((src.width-1.0)  - (dst.width -1.0)*(r1W)) /dst.width;
-	double deviH = ((src.height-1.0) - (dst.height-1.0)*(r1H)) /dst.height;
-
-	// 跑新圖座標
-//#pragma omp parallel for
-	for (int j = 0; j < dst.height; ++j) {
-		for (int i = 0; i < dst.width; ++i) {
-			// 調整對齊
-			double srcY, srcX;
-			if (ratio < 1.0) {
-				srcX = i*(r1W+deviW);
-				srcY = j*(r1H+deviH);
-			} else if (ratio >= 1.0) {
-				srcX = i*r2W;
-				srcY = j*r2H;
-			}
-			// 獲取插補值
-			unsigned char* p = &dst.raw_img[(j*dst.width + i) *3];
-			fast_Bilinear(src.raw_img.data(), src.width, src.height, p, srcY, srcX);
-		}
-	}
-}
-
-
-//======================================================================================

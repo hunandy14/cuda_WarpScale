@@ -21,13 +21,28 @@ using uch = unsigned char;
 
 class cuImgData:public CudaData<uch>{
 public:
+	cuImgData() = default;
 	cuImgData(const basic_ImgData& src) :
 		CudaData(src.raw_img.data(), src.raw_img.size()),
-		width(src.width), height(src.height) {}
-	cuImgData(int size): CudaData(size) {}
+		width(src.width), height(src.height), bits(src.bits) {}
+	cuImgData(uint32_t w, uint32_t h, uint16_t bits): 
+		CudaData(w*h * bits>>3), width(w), height(h), bits(bits){}
+	~cuImgData() = default;
 public:
 	void out(basic_ImgData& dst) {
+		dst.raw_img.resize(width*height * bits>>3);
+		dst.width  = width;
+		dst.height = height;
+		dst.bits   = bits;
 		memcpyOut(dst.raw_img.data(), dst.raw_img.size());
+	}
+	void resize(uint32_t w, uint32_t h, uint16_t bits) {
+		this->~cuImgData();
+		malloc(w*h * bits>>3);
+
+		this->width  = w;
+		this->height = h;
+		this->bits   = bits;
 	}
 public:
 	uint32_t width;
@@ -36,7 +51,7 @@ public:
 };
 
 __host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
-__host__ void WarpScale_rgb_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
+__host__ void WarpScale_rgb_test(const cuImgData & uSrc, cuImgData & uDst, double ratio);
 //__host__ void WarpScale_rgb_test(const cuImgData & src, cuImgData & dst, double ratio);
 __host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 

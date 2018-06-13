@@ -40,13 +40,18 @@ int main(){
 	ImgData dst;
 	dst.resize(src.width*ratio, src.height*ratio, src.bits);
 
-
+	// 要求GPU空間
+	cuImgData uSrc(src);
+	cuImgData uDst(src.width*ratio, src.height*ratio, src.bits);
 
 	// GPU速度
 	//T.start();
 	//cuWarpScale_kernel_test(src, dst, ratio);
-	WarpScale_rgb_test(src, dst, ratio);
+	WarpScale_rgb_test(uSrc, uDst, ratio);
 	//T.print(" cuWarpScale_rgb");
+
+	// 複製資料
+	uDst.out(dst);
 
 	dst.bmp("cutestImg.bmp");
 
