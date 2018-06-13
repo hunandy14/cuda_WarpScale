@@ -149,38 +149,12 @@ public:
 
 
 //----------------------------------------------------------------
-// #define ENABLE_CU_DATA
-#ifdef ENABLE_CU_DATA
-struct cubasic_ImgData {
-	unsigned char* raw_img;
-	uint32_t width;
-	uint32_t height;
-	uint16_t bits;
-};
-struct basic_ImgData {
-	std::vector<unsigned char> raw_img;
-	uint32_t width;
-	uint32_t height;
-	uint16_t bits;
-
-
-	operator cubasic_ImgData() {
-		cubasic_ImgData temp;
-		temp.raw_img = (unsigned char*)raw_img.data();
-		temp.width = width;
-		temp.height = height;
-		temp.bits = bits;
-		return temp;
-	}
-};
-#else
 struct basic_ImgData {
 	std::vector<unsigned char> raw_img;
 	uint32_t width;
 	uint32_t height;
 	uint16_t bits;
 };
-#endif // ENABLE_CU_DATA
 
 class ImgData: public basic_ImgData {
 private: // 型態宣告

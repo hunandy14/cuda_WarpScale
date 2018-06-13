@@ -13,13 +13,31 @@ using namespace std;
 #define BLOCK_DIM 16.0
 
 using uch = unsigned char;
+/*void cuda_in(const basic_ImgData& src, cubasic_ImgData& dst) {
+	CudaData<uch> gg(src.raw_img.size());
+	gg.memcpyIn(src.raw_img.data(), src.raw_img.size());
+	
+	dst.raw_img = gg;
+	dst.width   = src.width;
+	dst.height  = src.height;
+	dst.bits    = src.bits;
+}
+void cuda_out(const cubasic_ImgData src, basic_ImgData dst) {
+	dst.raw_img.resize(src.width * src.height * 3);
+	CudaData<uch> gg;
+	gg.gpuData = src.raw_img;
+	gg.len = src.width*src.height*3;
+	gg.memcpyOut(dst.raw_img.data(), src.width*src.height*3);
 
-
+	dst.width  = src.width;
+	dst.height = src.height;
+	dst.bits   = src.bits;
+}*/
 //======================================================================================
 // 快速線性插值_核心
 __device__ __host__ static inline
-void cufast_Bilinear_rgb(unsigned char* p, 
-	const unsigned char* src, int w, int h, double y, double x)
+void fast_Bilinear(const uch* src, int w, int h,
+	uch* p, double y, double x)
 {
 	int srcW = w;
 	int srcH = h;
@@ -55,9 +73,10 @@ void cufast_Bilinear_rgb(unsigned char* p,
 	p[1] = (unsigned char) G;
 	p[2] = (unsigned char) B;
 }
+//======================================================================================
 // 快速線性插值
 __global__ 
-void cuWarpScale_rgb_kernel(const uch* src, uch* dst, 
+void cuWarpScale_kernel(const uch* src, uch* dst, 
 	int w, int h, double ratio)
 {
 	int srcH=h;
@@ -89,11 +108,12 @@ void cuWarpScale_rgb_kernel(const uch* src, uch* dst,
 		}
 		// 獲取插補值
 		unsigned char* p = &dst[(j*dstW+ i) *3];
-		cufast_Bilinear_rgb(p, src, srcW, srcH, srcY, srcX);
+		fast_Bilinear(src, w, h, p, srcY, srcX);
 	}
 }
+// 測試 cuWarpScale_kernel
 __host__
-void cuWarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio){
+void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio){
 	Timer t;
 	// 初始化空間
 	//t.start();
@@ -123,7 +143,7 @@ void cuWarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double rati
 
 	// 執行 kernel
 	// t.start();
-	cuWarpScale_rgb_kernel <<< grid, block >>> (gpuSrc, gpuDst, src.width, src.height, ratio);
+	cuWarpScale_kernel <<< grid, block >>> (gpuSrc, gpuDst, src.width, src.height, ratio);
 	// t.print("  kernel");
 
 	// 複製資料
@@ -136,48 +156,31 @@ void cuWarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double rati
 	gpuDst.~CudaData<uch>();
 	// t.print("  dctor");
 }
+// GPU 線性插值
+__host__
+void WarpScale_rgb_test(const basic_ImgData & src, basic_ImgData & dst, double ratio) {
+	Timer t;
 
+	// 要求GPU空間
+	cuImgData uSrc(src);
+	cuImgData uDst(dst.raw_img.size());
 
+	// 設置執行緒
+	dim3 block(BLOCK_DIM, BLOCK_DIM);
+	dim3 grid(ceil(dst.width / BLOCK_DIM), ceil(dst.width / BLOCK_DIM));
 
-//======================================================================================
-// 快速線性插值_核心
-__device__ __host__ static inline
-void fast_Bilinear_rgb(unsigned char* p, 
-	const basic_ImgData& src, double y, double x)
-{
-	// 起點
-	int _x = (int)x;
-	int _y = (int)y;
-	// 左邊比值
-	double l_x = x - (double)_x;
-	double r_x = 1.f - l_x;
-	double t_y = y - (double)_y;
-	double b_y = 1.f - t_y;
-	int srcW = src.width;
-	int srcH = src.height;
+	// 執行 kernel
+	// t.start();
+	cuWarpScale_kernel <<< grid, block >>> (uSrc, uDst, src.width, src.height, ratio);
+	// t.print("  kernel");
 
-	// 計算RGB
-	double R , G, B;
-	int x2 = (_x+1) > srcW -1? srcW -1: _x+1;
-	int y2 = (_y+1) > srcH-1? srcH-1: _y+1;
-	R  = (double)src.raw_img[(_y * srcW + _x) *3 + 0] * (r_x * b_y);
-	G  = (double)src.raw_img[(_y * srcW + _x) *3 + 1] * (r_x * b_y);
-	B  = (double)src.raw_img[(_y * srcW + _x) *3 + 2] * (r_x * b_y);
-	R += (double)src.raw_img[(_y * srcW + x2) *3 + 0] * (l_x * b_y);
-	G += (double)src.raw_img[(_y * srcW + x2) *3 + 1] * (l_x * b_y);
-	B += (double)src.raw_img[(_y * srcW + x2) *3 + 2] * (l_x * b_y);
-	R += (double)src.raw_img[(y2 * srcW + _x) *3 + 0] * (r_x * t_y);
-	G += (double)src.raw_img[(y2 * srcW + _x) *3 + 1] * (r_x * t_y);
-	B += (double)src.raw_img[(y2 * srcW + _x) *3 + 2] * (r_x * t_y);
-	R += (double)src.raw_img[(y2 * srcW + x2) *3 + 0] * (l_x * t_y);
-	G += (double)src.raw_img[(y2 * srcW + x2) *3 + 1] * (l_x * t_y);
-	B += (double)src.raw_img[(y2 * srcW + x2) *3 + 2] * (l_x * t_y);
-
-	p[0] = (unsigned char) R;
-	p[1] = (unsigned char) G;
-	p[2] = (unsigned char) B;
+	// 複製資料
+	uDst.out(dst);
+	
+	t.print(" cuWarpScale_rgb");
 }
-// 快速線性插值
+
+// CPU快速線性插值
 __host__
 void WarpScale_rgb(const basic_ImgData &src, basic_ImgData &dst, double ratio){
 	// 防呆
@@ -213,7 +216,7 @@ void WarpScale_rgb(const basic_ImgData &src, basic_ImgData &dst, double ratio){
 			}
 			// 獲取插補值
 			unsigned char* p = &dst.raw_img[(j*dst.width + i) *3];
-			fast_Bilinear_rgb(p, src, srcY, srcX);
+			fast_Bilinear(src.raw_img.data(), src.width, src.height, p, srcY, srcX);
 		}
 	}
 }

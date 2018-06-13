@@ -35,19 +35,19 @@ int main(){
 	Timer T;
 	double ratio = 1;
 	// 讀取
-	ImgData src("img/test.bmp"); ratio = 5;
+	ImgData src("img/test.bmp"); ratio = 0.5;
 	//ImgData src("img/737400.bmp"); ratio = 1;
-
-	ImgData srcGray, dst, temp;
+	ImgData dst;
 	dst.resize(src.width*ratio, src.height*ratio, src.bits);
-	srcGray = src.toConvertGray();
+
+
 
 	// GPU速度
-	vector<float> img_gpuRst, img_data = tofloat(srcGray.raw_img.data(), srcGray.size());
-	
-	T.start();
-	cuWarpScale_rgb(src, dst, ratio);
-	T.print(" cuWarpScale_rgb");
+	//T.start();
+	//cuWarpScale_kernel_test(src, dst, ratio);
+	WarpScale_rgb_test(src, dst, ratio);
+	//T.print(" cuWarpScale_rgb");
+
 	dst.bmp("cutestImg.bmp");
 
 	// CPU速度

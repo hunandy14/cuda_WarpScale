@@ -17,8 +17,27 @@ Final: 2018/01/08
 // 	uint32_t height;
 // 	uint16_t bits;
 // };
+using uch = unsigned char;
 
-__host__ void cuWarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
+class cuImgData:public CudaData<uch>{
+public:
+	cuImgData(const basic_ImgData& src) :
+		CudaData(src.raw_img.data(), src.raw_img.size()),
+		width(src.width), height(src.height) {}
+	cuImgData(int size): CudaData(size) {}
+public:
+	void out(basic_ImgData& dst) {
+		memcpyOut(dst.raw_img.data(), dst.raw_img.size());
+	}
+public:
+	uint32_t width;
+	uint32_t height;
+	uint16_t bits;
+};
+
+__host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
+__host__ void WarpScale_rgb_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
+//__host__ void WarpScale_rgb_test(const cuImgData & src, cuImgData & dst, double ratio);
 __host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 
 

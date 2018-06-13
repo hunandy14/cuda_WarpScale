@@ -64,12 +64,12 @@ public:
 	operator const T*() const {
 		return gpuData;
 	}
-private:
+public:
 	T* gpuData = nullptr;
 	size_t len = 0;
 };
 
-// 第一次malloc非常耗時
+// 預啟動cuda核心
 static CudaData<int> __CudaDataInit__(0);
 
 
