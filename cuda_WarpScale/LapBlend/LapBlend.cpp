@@ -420,6 +420,7 @@ void buildLaplacianPyramids(const basic_ImgData &src, LapPyr &pyr, int octvs=5) 
 		t1.start();
 		pyraDown(pyr[i-1], pyr[i]); // 0.4
 		t1.print("    pyraDown");
+
 		// 放大回來
 		t1.start();
 		cuImgData upyr(pyr[i]), uexpend;
@@ -427,8 +428,21 @@ void buildLaplacianPyramids(const basic_ImgData &src, LapPyr &pyr, int octvs=5) 
 		uexpend.out(expend);
 		//WarpScale(pyr[i], expend, 2.0); // 0.5
 		t1.print("    WarpScale");
+
+
+
 		// 相減
-		imgSub(pyr[i-1], expend);
+		cuImgData upyr1(pyr[i-1]);
+		imgSub(upyr1, uexpend);
+
+		//upyr1.out(pyr[i-1]);
+		upyr1.out(pyr[i-1]);
+		//ImgData_write(uTest, "_Test.bmp");
+		
+		//imgSub(pyr[i-1], expend);
+		//ImgData_write(pyr[i-1], "_Test1.bmp");
+
+		cout<<endl;
 	}
 }
 void reLaplacianPyramids(LapPyr &pyr, basic_ImgData &dst, int octvs=5) {

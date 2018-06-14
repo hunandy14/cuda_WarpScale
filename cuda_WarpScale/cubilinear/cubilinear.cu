@@ -55,7 +55,7 @@ void fast_Bilinear(const uch* src, int w, int h,
 	p[1] = (unsigned char) G;
 	p[2] = (unsigned char) B;
 }
-//======================================================================================
+//==============================================
 // 快速線性插值
 __global__ 
 void cuWarpScale_kernel(const uch* src, uch* dst, 
@@ -149,7 +149,7 @@ void WarpScale_rgb(const basic_ImgData &src, basic_ImgData &dst, double ratio){
 		}
 	}
 }
-//======================================================================================
+
 
 // 測試 cuWarpScale_kernel
 __host__
@@ -195,4 +195,43 @@ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, dou
 	// t.start();
 	gpuDst.~CudaData<uch>();
 	// t.print("  dctor");
+}
+//======================================================================================
+// 圖像相減
+__global__
+void imgSub_kernel(uch* src, int srcW, int srcH, const uch* dst, int dstW, int dstH)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < srcH && i < srcW) { // 會多跑一點點要擋掉
+		int srcIdx = (j*srcW + i) * 3;
+		int dstIdx = (j*dstW + i) * 3;
+
+		int pixR = (int)src[srcIdx+0] - (int)dst[dstIdx+0] +128;
+		int pixG = (int)src[srcIdx+1] - (int)dst[dstIdx+1] +128;
+		int pixB = (int)src[srcIdx+2] - (int)dst[dstIdx+2] +128;
+
+		pixR = pixR <0? 0: pixR;
+		pixG = pixG <0? 0: pixG;
+		pixB = pixB <0? 0: pixB;
+		pixR = pixR >255? 255: pixR;
+		pixG = pixG >255? 255: pixG;
+		pixB = pixB >255? 255: pixB;
+
+		src[srcIdx+0] = pixR;
+		src[srcIdx+1] = pixG;
+		src[srcIdx+2] = pixB;
+	}
+}
+// 圖像相減
+__host__
+void imgSub(cuImgData & uSrc, const cuImgData & uDst) {
+	// 設置大小
+	int srcW = uSrc.width;
+	int srcH = uSrc.height;
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(srcW / BLOCK_DIM_X)+1, ceil(srcH / BLOCK_DIM_Y)+1);
+	// 執行 kernel
+	imgSub_kernel <<< grid, block >>> (uSrc, uSrc.width, uSrc.height, uDst, uDst.width, uDst.height);
 }

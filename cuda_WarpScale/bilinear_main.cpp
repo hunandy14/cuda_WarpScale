@@ -30,7 +30,7 @@ vector<uch> touch(const float* img, size_t size) {
 		temp[i] = img[i];
 	} return temp;
 }
-
+void imgSub(basic_ImgData &src, const basic_ImgData &dst);
 void cuda_info() {
 	cudaDeviceProp prop;  
 
@@ -90,7 +90,13 @@ int main(){
 
 	/* 金字塔混和 */
 	cout << "\n\n金字塔混和\n" << endl;
-	LapBlend_Tester();
 
+	/*ImgData t1("img/_Test0.bmp"), t2("img/_Test1.bmp"), out;
+	cuImgData ut1(t1), ut2(t2);
+	imgSub(ut1, ut2);
+	ut1.out(out);
+	out.bmp("__bugTest.bmp");*/	
+
+	LapBlend_Tester();
 	return 0;
 }
