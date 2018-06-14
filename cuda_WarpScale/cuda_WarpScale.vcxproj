@@ -13,10 +13,12 @@
   <ItemGroup>
     <ClInclude Include="cubilinear\cubilinear.hpp" />
     <ClInclude Include="CudaMem\CudaMem.cuh" />
+    <ClInclude Include="LapBlend\LapBlend.hpp" />
     <ClInclude Include="OpenBMP\OpenBMP.hpp" />
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="bilinear_main.cpp" />
+    <ClCompile Include="LapBlend\LapBlend.cpp" />
     <ClCompile Include="OpenBMP\OpenBMP.cpp" />
   </ItemGroup>
   <ItemGroup>

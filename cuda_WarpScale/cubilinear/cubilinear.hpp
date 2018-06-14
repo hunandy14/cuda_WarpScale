@@ -51,8 +51,7 @@ public:
 };
 
 __host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
-__host__ void WarpScale_rgb_test(const cuImgData & uSrc, cuImgData & uDst, double ratio);
-//__host__ void WarpScale_rgb_test(const cuImgData & src, cuImgData & dst, double ratio);
+__host__ void WarpScale_rgb(const cuImgData & uSrc, cuImgData & uDst, double ratio);
 __host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 
 

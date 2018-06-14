@@ -1,0 +1,1 @@
+name1="srcIMG\\sc02.bmp", name2="srcIMG\\sc03.bmp"; ft=676.974, Ax=216, Ay=4;

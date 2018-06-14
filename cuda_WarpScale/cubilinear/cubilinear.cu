@@ -11,6 +11,8 @@ using namespace std;
 
 #include "cubilinear.hpp"
 #define BLOCK_DIM 16.0
+#define BLOCK_DIM_X 32.0
+#define BLOCK_DIM_Y 8.0
 
 using uch = unsigned char;
 //======================================================================================
@@ -59,16 +61,14 @@ __global__
 void cuWarpScale_kernel(const uch* src, uch* dst, 
 	int w, int h, double ratio)
 {
-	int srcH=h;
 	int srcW=w;
+	int srcH=h;
 
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	int dstH = (int)(floor(srcH * ratio));
-	int dstW = (int)(floor(srcW * ratio));
+	int dstW = (int)((srcW * ratio) +0.5);
+	int dstH = (int)((srcH * ratio) +0.5);
 
 	// 縮小的倍率
-	double r1W = ((double)srcW )/(dstW );
+	double r1W = ((double)srcW )/(dstW);
 	double r1H = ((double)srcH)/(dstH);
 	// 放大的倍率
 	double r2W = (srcW -1.0)/(dstW -1.0);
@@ -77,32 +77,35 @@ void cuWarpScale_kernel(const uch* src, uch* dst,
 	double deviW = ((srcW-1.0)  - (dstW -1.0)*(r1W)) /dstW;
 	double deviH = ((srcH-1.0) - (dstH-1.0)*(r1H)) /dstH;
 
-	if(i < srcW*ratio && j < srcH*ratio) { // 會多跑一點點要擋掉
-		double srcY, srcX;
-		if (ratio < 1.0) {
-			srcX = i*(r1W+deviW);
-			srcY = j*(r1H+deviH);
-		} else if (ratio >= 1.0) {
-			srcX = i*r2W;
-			srcY = j*r2H;
-		}
-		// 獲取插補值
-		unsigned char* p = &dst[(j*dstW+ i) *3];
-		fast_Bilinear(src, w, h, p, srcY, srcX);
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < dstH && i < dstW) { // 會多跑一點點要擋掉
+			double srcY, srcX;
+			if (ratio < 1.0) {
+				srcX = i*(r1W+deviW);
+				srcY = j*(r1H+deviH);
+			} else if (ratio >= 1.0) {
+				srcX = i*r2W;
+				srcY = j*r2H;
+			}
+			// 獲取插補值
+			unsigned char* p = &dst[(j*dstW+ i) *3];
+			fast_Bilinear(src, w, h, p, srcY, srcX);
+		
 	}
 }
 // GPU 線性插值
 __host__
-void WarpScale_rgb_test(const cuImgData & uSrc, cuImgData & uDst, double ratio) {
+void WarpScale_rgb(const cuImgData & uSrc, cuImgData & uDst, double ratio) {
 	// 設置大小
 	if(uDst.width != uSrc.width*ratio && uDst.height != uSrc.height*ratio
 		&& uDst.bits != uSrc.bits) 
 	{
-		uDst.resize(uSrc.width*ratio, uSrc.height*ratio, uSrc.bits);
+		uDst.resize(uSrc.width*ratio+.5, uSrc.height*ratio+.5, uSrc.bits);
 	}
 	// 設置執行緒
-	dim3 block(BLOCK_DIM, BLOCK_DIM);
-	dim3 grid(ceil(uDst.width / BLOCK_DIM), ceil(uDst.width / BLOCK_DIM));
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(uDst.width / BLOCK_DIM_X), ceil(uDst.height / BLOCK_DIM_Y));
 	// 執行 kernel
 	cuWarpScale_kernel <<< grid, block >>> (uSrc, uDst, uSrc.width, uSrc.height, ratio);
 }

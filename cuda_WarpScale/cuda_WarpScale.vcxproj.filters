@@ -10,12 +10,18 @@
     <Filter Include="CudaMem">
       <UniqueIdentifier>{6cf22ab1-5f79-4d8b-9884-f19aa633bdd0}</UniqueIdentifier>
     </Filter>
+    <Filter Include="LapBlend">
+      <UniqueIdentifier>{79b2e228-3a02-49a0-9c99-c0077f0d1b08}</UniqueIdentifier>
+    </Filter>
   </ItemGroup>
   <ItemGroup>
     <ClCompile Include="OpenBMP\OpenBMP.cpp">
       <Filter>OpenBMP</Filter>
     </ClCompile>
     <ClCompile Include="bilinear_main.cpp" />
+    <ClCompile Include="LapBlend\LapBlend.cpp">
+      <Filter>LapBlend</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <ClInclude Include="OpenBMP\OpenBMP.hpp">
@@ -26,6 +32,9 @@
     </ClInclude>
     <ClInclude Include="cubilinear\cubilinear.hpp">
       <Filter>bilinear</Filter>
+    </ClInclude>
+    <ClInclude Include="LapBlend\LapBlend.hpp">
+      <Filter>LapBlend</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>
