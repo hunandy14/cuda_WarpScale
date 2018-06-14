@@ -98,14 +98,14 @@ void cuWarpScale_kernel(const uch* src, uch* dst,
 __host__
 void WarpScale_rgb(const cuImgData & uSrc, cuImgData & uDst, double ratio) {
 	// 設置大小
-	if(uDst.width != uSrc.width*ratio && uDst.height != uSrc.height*ratio
-		&& uDst.bits != uSrc.bits) 
-	{
-		uDst.resize(uSrc.width*ratio+.5, uSrc.height*ratio+.5, uSrc.bits);
-	}
+	int dstW = (int)((uSrc.width  * ratio) +0.5);
+	int dstH = (int)((uSrc.height * ratio) +0.5);
+	// 不相同則resize
+	if(uDst.width != dstW || uDst.height != dstH || uDst.bits != uSrc.bits) 
+		uDst.resize(dstW, dstH, uSrc.bits);
 	// 設置執行緒
 	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
-	dim3 grid(ceil(uDst.width / BLOCK_DIM_X), ceil(uDst.height / BLOCK_DIM_Y));
+	dim3 grid(ceil(dstW / BLOCK_DIM_X), ceil(dstH / BLOCK_DIM_Y));
 	// 執行 kernel
 	cuWarpScale_kernel <<< grid, block >>> (uSrc, uDst, uSrc.width, uSrc.height, ratio);
 }

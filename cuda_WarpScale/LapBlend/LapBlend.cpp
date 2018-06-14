@@ -150,7 +150,6 @@ static vector<double> gau_matrix(double p, size_t mat_len) {
 	for (auto&& i : gau_mat) { i /= sum; }
 	return gau_mat;
 }
-
 // 高斯模糊
 void GauBlur(const basic_ImgData& src, basic_ImgData& dst, double p, size_t mat_len)
 {
@@ -217,6 +216,7 @@ void GauBlur(const basic_ImgData& src, basic_ImgData& dst, double p, size_t mat_
 		}
 	}
 }
+
 // 積分模糊
 void Lowpass(const basic_ImgData& src, basic_ImgData& dst) {
 	int d=5;
@@ -337,16 +337,14 @@ void pyraDown(const basic_ImgData &src, basic_ImgData &dst) {
 	dst.bits   = src.bits;
 
 	basic_ImgData temp;
-
+	
 	cuImgData usrc(src), utemp;
-	WarpScale_rgb(usrc, utemp, 0.5);
+	WarpScale_rgb(usrc, utemp, 0.5); // 0.4
 	utemp.out(temp);
-	ImgData_write(temp, "_temp1.bmp");
 
-	WarpScale_rgb(src, temp, 0.5);
-	ImgData_write(temp, "_temp2.bmp");
+	//WarpScale_rgb(src, temp, 0.5); // 0.7
 
-	GauBlur(temp, dst, 1.6, 4);
+	GauBlur(temp, dst, 1.6, 3);
 }
 void imgSub(basic_ImgData &src, const basic_ImgData &dst) {
 	int i, j;
@@ -418,18 +416,18 @@ void buildLaplacianPyramids(const basic_ImgData &src, LapPyr &pyr, int octvs=5) 
 
 	for(int i = 1; i < octvs; i++) {
 		basic_ImgData expend;
+		// 縮小+模糊
 		t1.start();
-		pyraDown(pyr[i-1], pyr[i]); // 0.6
+		pyraDown(pyr[i-1], pyr[i]); // 0.4
 		t1.print("    pyraDown");
+		// 放大回來
 		t1.start();
-
-		//cuImgData upyr(pyr[i]), uexpend;
-		//WarpScale_rgb(upyr, uexpend, 2.0);
-		//uexpend.out(expend);
-
-		WarpScale(pyr[i], expend, 2.0); // 0.5
-
+		cuImgData upyr(pyr[i]), uexpend;
+		WarpScale_rgb(upyr, uexpend, 2.0);
+		uexpend.out(expend);
+		//WarpScale(pyr[i], expend, 2.0); // 0.5
 		t1.print("    WarpScale");
+		// 相減
 		imgSub(pyr[i-1], expend);
 	}
 }
@@ -834,7 +832,7 @@ void LapBlend_Tester() {
 	double ft; int Ax, Ay;
 
 	// 籃球 (1334x1000, 237ms)
-	name1="img/ball_01.bmp", name2="img/ball_02.bmp"; ft=2252.97, Ax=539, Ay=-37;
+	name1="img/ball_01.bmp", name2="img/ball_02.bmp"; ft=2252.97, Ax=539, Ay=-29;
 	// 校園 (752x500, 68ms)
 	//name1="img/sc02.bmp", name2="img/sc03.bmp"; ft=676.974, Ax=216, Ay=4;
 
