@@ -15,6 +15,8 @@ using namespace std;
 #define BLOCK_DIM_Y 8.0
 
 using uch = unsigned char;
+
+
 //======================================================================================
 // 快速線性插值_核心
 __device__ __host__ static inline
@@ -196,6 +198,8 @@ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, dou
 	gpuDst.~CudaData<uch>();
 	// t.print("  dctor");
 }
+
+
 //======================================================================================
 // 圖像相減
 __global__
@@ -235,3 +239,118 @@ void imgSub(cuImgData & uSrc, const cuImgData & uDst) {
 	// 執行 kernel
 	imgSub_kernel <<< grid, block >>> (uSrc, uSrc.width, uSrc.height, uDst, uDst.width, uDst.height);
 }
+
+
+//======================================================================================
+// 高斯核心
+static vector<double> getGaussianKernel( int n, double sigma)
+{
+	const int SMALL_GAUSSIAN_SIZE = 7;
+	static const float small_gaussian_tab[][SMALL_GAUSSIAN_SIZE] =
+	{
+		{1.f},
+		{0.25f, 0.5f, 0.25f},
+		{0.0625f, 0.25f, 0.375f, 0.25f, 0.0625f},
+		{0.03125f, 0.109375f, 0.21875f, 0.28125f, 0.21875f, 0.109375f, 0.03125f}
+	};
+
+	const float* fixed_kernel = n % 2 == 1 && n <= SMALL_GAUSSIAN_SIZE && sigma <= 0 ?
+		small_gaussian_tab[n>>1] : 0;
+
+	vector<double> kernel(n);
+	double* cd = kernel.data();
+
+	double sigmaX = sigma > 0 ? sigma : ((n-1)*0.5 - 1)*0.3 + 0.8;
+	double scale2X = -0.5/(sigmaX*sigmaX);
+	double sum = 0;
+
+	int i;
+	for( i = 0; i < n; i++ )
+	{
+		double x = i - (n-1)*0.5;
+		double t = fixed_kernel ? (double)fixed_kernel[i] : std::exp(scale2X*x*x);
+		cd[i] = t;
+		sum += cd[i];
+	}
+
+	sum = 1./sum;
+
+	for( i = 0; i < n; i++ )
+	{
+		cd[i] *= sum;
+	}
+
+	return kernel;
+}
+//==============================================
+// 高私模糊
+__global__
+void imgGau_kernel(
+	const uch* src, int srcW, int srcH, 
+	uch* dst, uch* img_gauX,
+	const double* gauMat, int matLen)
+{
+	const int r = matLen / 2;
+
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if( j>=1 && i >=1 &&
+		j < srcH-1 && i < srcW-1) { // 會多跑一點點要擋掉
+		int srcIdx = (j*srcW + i) * 3;
+		int dstIdx = (j*srcW + i) * 3;
+
+		double sumR = 0;
+		double sumG = 0;
+		double sumB = 0;
+#pragma unroll
+		for (int k = 0; k < matLen; ++k) {
+			int idx = i-r + k;
+			// idx超出邊緣處理
+			if (idx < 0) {
+				idx = 0;
+			} else if (idx >(int)(srcW-1)) {
+				idx = (srcW-1);
+			}
+			sumR += (double)src[srcIdx + 0] * gauMat[k];
+			sumG += (double)src[srcIdx + 1] * gauMat[k];
+			sumB += (double)src[srcIdx + 2] * gauMat[k];
+		}
+		if(sumR >255) {
+			sumR = 255;
+		} 
+		else if (sumR < 0){
+			sumR = 0;
+		}
+		dst[srcIdx+0] = (uch)sumR;
+		dst[srcIdx+1] = (uch)0;
+		dst[srcIdx+2] = (uch)0;
+
+		/*dst[srcIdx+0] = src[srcIdx+0];
+		dst[srcIdx+1] = src[srcIdx+1];
+		dst[srcIdx+2] = src[srcIdx+2];*/
+	}
+}
+__host__
+void imgGau(const cuImgData& uSrc, cuImgData & uDst) {
+	// 設置大小
+	int srcW = uSrc.width;
+	int srcH = uSrc.height;
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(srcW / BLOCK_DIM_X)+1, ceil(srcH / BLOCK_DIM_Y)+1);
+	// 要求GPU空間
+	cuImgData uTemp;
+	uDst.resize(uSrc);
+	uTemp.resize(uSrc);
+	// 高斯 kernle
+	int matLen=3;
+	vector<double> gau_mat = getGaussianKernel(matLen, 0);
+
+	// 執行 kernel
+	imgGau_kernel <<< grid, block >>> (
+		uSrc, uSrc.width, uSrc.height, 
+		uDst, uTemp,
+		gau_mat.data(), matLen
+	);
+}
+

@@ -44,6 +44,9 @@ public:
 		this->height = h;
 		this->bits   = bits;
 	}
+	void resize(const cuImgData& src) {
+		resize(src.width, src.height, src.bits);
+	}
 public:
 	uint32_t width;
 	uint32_t height;
@@ -52,6 +55,7 @@ public:
 
 __host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 __host__ void imgSub(cuImgData & uSrc, const cuImgData & uDst);
+__host__ void imgGau(const cuImgData & uSrc, cuImgData & uDst);
 __host__ void WarpScale_rgb(const cuImgData & uSrc, cuImgData & uDst, double ratio);
 __host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 

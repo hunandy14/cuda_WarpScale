@@ -16,6 +16,8 @@ using namespace std;
 #include "Timer.hpp"
 #include "LapBlend/LapBlend.hpp"
 
+#include <opencv2\opencv.hpp>
+
 using uch = unsigned char;
 
 vector<float> tofloat(const uch* img, size_t size) {
@@ -91,12 +93,17 @@ int main(){
 	/* 金字塔混和 */
 	cout << "\n\n金字塔混和\n" << endl;
 
-	/*ImgData t1("img/_Test0.bmp"), t2("img/_Test1.bmp"), out;
-	cuImgData ut1(t1), ut2(t2);
-	imgSub(ut1, ut2);
-	ut1.out(out);
-	out.bmp("__bugTest.bmp");*/	
+	ImgData t1("img/_Test0.bmp"), out;
+	cuImgData ut1(t1), ut2;
+	ut2.resize(t1);
+
+	imgGau(ut1, ut2);
+
+	ut2.out(out);
+	out.bmp("__bugTest.bmp");
 
 	LapBlend_Tester();
+
+
 	return 0;
 }
