@@ -29,6 +29,15 @@ public:
 		CudaData(w*h * bits>>3), width(w), height(h), bits(bits){}
 	~cuImgData() = default;
 public:
+	void in(const basic_ImgData& dst) {
+		int size = dst.raw_img.size();
+		malloc(size);
+		memcpyIn(dst.raw_img.data(), size);
+
+		width  = dst.width;
+		height = dst.height;
+		bits   = dst.bits;
+	}
 	void out(basic_ImgData& dst) {
 		dst.raw_img.resize(width*height * bits>>3);
 		dst.width  = width;
@@ -37,15 +46,29 @@ public:
 		memcpyOut(dst.raw_img.data(), dst.raw_img.size());
 	}
 	void resize(uint32_t w, uint32_t h, uint16_t bits) {
-		this->~cuImgData();
-		malloc(w*h * bits>>3);
-
+		// 空間不足重new
+		if(w*h > this->len) {
+			this->~cuImgData();
+			malloc(w*h * bits>>3);
+			//cout << "reNewSize" << endl;
+		} 
+		// 空間充足直接用
+		else if(w*h <= this->len) {
+			//cout << "non reNewSize" << endl;
+		}
 		this->width  = w;
 		this->height = h;
 		this->bits   = bits;
 	}
 	void resize(const cuImgData& src) {
 		resize(src.width, src.height, src.bits);
+	}
+public:
+	int size(){
+		return width*height*bits>>3;
+	}
+	int sizePix(){
+		return width*height;
 	}
 public:
 	uint32_t width;
@@ -55,7 +78,7 @@ public:
 
 __host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 __host__ void imgSub(cuImgData & uSrc, const cuImgData & uDst);
-__host__ void imgGau(const cuImgData & uSrc, cuImgData & uDst);
+__host__ void GaussianBlur(const cuImgData & uSrc, cuImgData & uDst, int matLen, double sigma=0);
 __host__ void WarpScale_rgb(const cuImgData & uSrc, cuImgData & uDst, double ratio);
 __host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 

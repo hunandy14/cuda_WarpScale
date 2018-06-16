@@ -16,7 +16,7 @@ using namespace std;
 
 #define or ||
 #define and &&
-
+#define LAP_OCTVS 5
 
 //==================================================================================
 // 轉換
@@ -152,7 +152,6 @@ static vector<double> getGaussianKernel( int n, double sigma)
 
 	return kernel;
 }
-
 // 高斯模糊
 static void GaussianBlur(const basic_ImgData& src, basic_ImgData& dst, size_t mat_len, double sigma=0)
 {
@@ -217,7 +216,6 @@ static void GaussianBlur(const basic_ImgData& src, basic_ImgData& dst, size_t ma
 		}
 	}
 }
-
 // 積分模糊
 void Lowpass(const basic_ImgData& src, basic_ImgData& dst) {
 	int d=5;
@@ -326,27 +324,12 @@ void pyraUp(const basic_ImgData &src, basic_ImgData &dst) {
 	GaussianBlur(temp, dst, 3);
 }
 void pyraDown(const basic_ImgData &src, basic_ImgData &dst) {
-	//Timer t1;
-	int newH = (int)(src.height * 0.5);
-	int newW = (int)(src.width  * 0.5);
-
 	// 初始化 dst
-	dst.raw_img.clear();
-	dst.raw_img.resize(newW * newH * src.bits/8.0);
-	dst.width  = newW;
-	dst.height = newH;
-	dst.bits   = src.bits;
-
-	basic_ImgData temp;
-	
-	cuImgData usrc(src), utemp;
+	cuImgData usrc(src), utemp, udst;
 	WarpScale_rgb(usrc, utemp, 0.5); // 0.4
-	utemp.out(temp);
 	//WarpScale_rgb(src, temp, 0.5); // 0.7
-
-	GaussianBlur(temp, dst, 3);
-
-	
+	GaussianBlur(utemp, udst, 3);
+	udst.out(dst);
 }
 void imgSub(basic_ImgData &src, const basic_ImgData &dst) {
 	int i, j;
@@ -374,10 +357,9 @@ void imgSub(basic_ImgData &src, const basic_ImgData &dst) {
 	}
 }
 void imgAdd(basic_ImgData &src, const basic_ImgData &dst) {
-	int i, j;
-#pragma omp parallel for private(i, j)
-	for (j = 0; j < src.height; j++) {
-		for (i = 0; i < src.width; i++) {
+#pragma omp parallel for
+	for (int j = 0; j < src.height; j++) {
+		for (int i = 0; i < src.width; i++) {
 			int srcIdx = (j*src.width + i) * 3;
 			int dstIdx = (j*dst.width + i) * 3;
 
@@ -409,33 +391,40 @@ void buildPyramids(const basic_ImgData &src, vector<basic_ImgData> &pyr, int oct
 		pyraDown(pyr[i-1], pyr[i]);
 	}
 }
-void buildLaplacianPyramids(const basic_ImgData &src, LapPyr &pyr, int octvs=5) {
-	Timer t1;
+void buildLaplacianPyramids(const basic_ImgData &src, LapPyr &pyr, int octvs=LAP_OCTVS) {
+	Timer t1, t2;
 	t1.priSta=1;
 	pyr.clear();
 	pyr.resize(octvs);
 	pyr[0]=src;
 
-	vector<cuImgData> p;
+	t2.start();
+	vector<cuImgData> lappyr(octvs);
+	lappyr[0].in(src);
+	cuImgData utemp(src.width, src.height, src.bits);
+	cuImgData& uExpend=utemp;
+
 	for(int i = 1; i < octvs; i++) {
-		basic_ImgData expend;
-		// 縮小+模糊
-		t1.start();
-		pyraDown(pyr[i-1], pyr[i]); // 0.4
-		t1.print("    pyraDown");
-
-		// 放大回來
-		t1.start();
-		cuImgData upyr(pyr[i]), upyr1(pyr[i-1]), uexpend;
-
-		WarpScale_rgb(upyr, uexpend, 2.0);
-		imgSub(upyr1, uexpend);
-
-		t1.print("    WarpScale");
-		upyr1.out(pyr[i-1]);
+		cuImgData& uReduce = lappyr[i]; // this is temp
+		// preImg 縮小+模糊 到 uReduce
+		WarpScale_rgb(lappyr[i-1], utemp, 0.5);
+		GaussianBlur(utemp, uReduce, 3);
+		// uReduce 放大到 uExpend, then preImg -= uExpend
+		WarpScale_rgb(uReduce, uExpend, 2.0);
+		imgSub(lappyr[i-1], uExpend);
 	}
+	t2.print("###############"); // 8ms
+
+	t2.start();
+	for(int i = 0; i < octvs; i++) {
+		lappyr[i].out(pyr[i]);
+	}
+	t2.print("################### copy");
+
 }
-void reLaplacianPyramids(LapPyr &pyr, basic_ImgData &dst, int octvs=5) {
+
+
+void reLaplacianPyramids(LapPyr &pyr, basic_ImgData &dst, int octvs=LAP_OCTVS) {
 	Timer t1;
 	int newH = (int)(pyr[0].height);
 	int newW = (int)(pyr[0].width);

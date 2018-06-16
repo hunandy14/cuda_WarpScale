@@ -93,6 +93,7 @@ int main(){
 	/* 金字塔混和 */
 	cout << "\n\n金字塔混和\n" << endl;
 
+	/*
 	ImgData t1("img/_Test0.bmp"), out;
 	cuImgData ut1(t1), ut2;
 	ut2.resize(t1);
@@ -100,7 +101,7 @@ int main(){
 	imgGau(ut1, ut2);
 
 	ut2.out(out);
-	out.bmp("__bugTest.bmp");
+	out.bmp("__bugTest.bmp");*/
 
 	LapBlend_Tester();
 

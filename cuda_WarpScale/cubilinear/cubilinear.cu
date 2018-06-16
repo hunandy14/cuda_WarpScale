@@ -294,15 +294,15 @@ void imgGau_kernel(
 
 	int i = blockIdx.x * blockDim.x + threadIdx.x;
 	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	if( j>=1 && i >=1 &&
-		j < srcH-1 && i < srcW-1) { // 會多跑一點點要擋掉
+	if( j>=0 && i >=0 &&
+		j < srcH && i < srcW) { // 會多跑一點點要擋掉
 		int srcIdx = (j*srcW + i) * 3;
 		int dstIdx = (j*srcW + i) * 3;
 
 		double sumR = 0;
 		double sumG = 0;
 		double sumB = 0;
-#pragma unroll
+
 		for (int k = 0; k < matLen; ++k) {
 			int idx = i-r + k;
 			// idx超出邊緣處理
@@ -311,27 +311,18 @@ void imgGau_kernel(
 			} else if (idx >(int)(srcW-1)) {
 				idx = (srcW-1);
 			}
-			sumR += (double)src[srcIdx + 0] * gauMat[k];
-			sumG += (double)src[srcIdx + 1] * gauMat[k];
-			sumB += (double)src[srcIdx + 2] * gauMat[k];
+			sumR += (double)src[(j*srcW + idx)*3 + 0] * gauMat[k];
+			sumG += (double)src[(j*srcW + idx)*3 + 1] * gauMat[k];
+			sumB += (double)src[(j*srcW + idx)*3 + 2] * gauMat[k];
 		}
-		if(sumR >255) {
-			sumR = 255;
-		} 
-		else if (sumR < 0){
-			sumR = 0;
-		}
-		dst[srcIdx+0] = (uch)sumR;
-		dst[srcIdx+1] = (uch)0;
-		dst[srcIdx+2] = (uch)0;
 
-		/*dst[srcIdx+0] = src[srcIdx+0];
-		dst[srcIdx+1] = src[srcIdx+1];
-		dst[srcIdx+2] = src[srcIdx+2];*/
+		dst[srcIdx+0] = sumR;
+		dst[srcIdx+1] = sumG;
+		dst[srcIdx+2] = sumB;
 	}
 }
 __host__
-void imgGau(const cuImgData& uSrc, cuImgData & uDst) {
+void GaussianBlur(const cuImgData& uSrc, cuImgData & uDst, int matLen, double sigma) {
 	// 設置大小
 	int srcW = uSrc.width;
 	int srcH = uSrc.height;
@@ -343,14 +334,13 @@ void imgGau(const cuImgData& uSrc, cuImgData & uDst) {
 	uDst.resize(uSrc);
 	uTemp.resize(uSrc);
 	// 高斯 kernle
-	int matLen=3;
-	vector<double> gau_mat = getGaussianKernel(matLen, 0);
-
+	vector<double> gau_mat = getGaussianKernel(matLen, sigma);
+	CudaData<double> uMat(gau_mat.data(), gau_mat.size());
 	// 執行 kernel
 	imgGau_kernel <<< grid, block >>> (
 		uSrc, uSrc.width, uSrc.height, 
 		uDst, uTemp,
-		gau_mat.data(), matLen
+		uMat, matLen
 	);
 }
 
