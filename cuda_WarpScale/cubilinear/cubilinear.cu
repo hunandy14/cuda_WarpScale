@@ -285,7 +285,7 @@ static vector<double> getGaussianKernel( int n, double sigma)
 //==============================================
 // 高私模糊
 __global__
-void imgGau_kernel(
+void imgGauX_kernel(
 	const uch* src, int srcW, int srcH, 
 	uch* dst, uch* img_gauX,
 	const double* gauMat, int matLen)
@@ -337,7 +337,7 @@ void GaussianBlur(const cuImgData& uSrc, cuImgData & uDst, int matLen, double si
 	vector<double> gau_mat = getGaussianKernel(matLen, sigma);
 	CudaData<double> uMat(gau_mat.data(), gau_mat.size());
 	// 執行 kernel
-	imgGau_kernel <<< grid, block >>> (
+	imgGauX_kernel <<< grid, block >>> (
 		uSrc, uSrc.width, uSrc.height, 
 		uDst, uTemp,
 		uMat, matLen
