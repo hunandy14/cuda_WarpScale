@@ -383,6 +383,7 @@ void imgAdd(basic_ImgData &src, const basic_ImgData &dst) {
 
 // 金字塔
 using LapPyr = vector<basic_ImgData>;
+using cuLapPyr = vector<cuImgData>;
 void buildPyramids(const basic_ImgData &src, vector<basic_ImgData> &pyr, int octvs=5) {
 	pyr.clear();
 	pyr.resize(octvs);
@@ -399,7 +400,7 @@ void buildLaplacianPyramids(const basic_ImgData &src, LapPyr &pyr, int octvs=LAP
 	pyr[0]=src;
 
 	t2.start();
-	vector<cuImgData> lappyr(octvs);
+	cuLapPyr lappyr(octvs);
 	lappyr[0].in(src);
 	cuImgData utemp(src.width, src.height, src.bits);
 	cuImgData& uExpend=utemp;
@@ -421,6 +422,23 @@ void buildLaplacianPyramids(const basic_ImgData &src, LapPyr &pyr, int octvs=LAP
 	}
 	t2.print("################### copy");
 
+}
+void buildLaplacianPyramids(const cuImgData &usrc, cuLapPyr &upyr, int octvs=LAP_OCTVS) {
+	upyr.resize(octvs);
+	upyr[0] = std::move(usrc);// todo 警告 這裡的移動語意還沒做(有做防double delete)
+
+	cuImgData utemp(usrc.width, usrc.height, usrc.bits);
+	cuImgData& uExpend=utemp;
+
+	for(int i = 1; i < octvs; i++) {
+		cuImgData& uReduce = upyr[i]; // this is temp
+		// preImg 縮小+模糊 到 uReduce
+		WarpScale_rgb(upyr[i-1], utemp, 0.5);
+		GaussianBlur(utemp, uReduce, 3);
+		// uReduce 放大到 uExpend, then preImg -= uExpend
+		WarpScale_rgb(uReduce, uExpend, 2.0);
+		imgSub(upyr[i-1], uExpend);
+	}
 }
 
 
@@ -505,13 +523,31 @@ void blendLaplacianImg(basic_ImgData& dst, const basic_ImgData& src1, const basi
 	Timer t1;
 	t1.priSta=1;
 	// 拉普拉斯金字塔 AB
-	vector<basic_ImgData> LA, LB;
+	vector<basic_ImgData> LA(LAP_OCTVS), LB(LAP_OCTVS);
+
+	cuLapPyr uLA, uLB;
+	cuImgData usrc1(src1), usrc2(src2);
+
 	t1.start();
-	buildLaplacianPyramids(src1, LA); //20 ms
+	buildLaplacianPyramids(usrc1, uLA);
 	t1.print("  buildLapA");
 	t1.start();
-	buildLaplacianPyramids(src2, LB);
+	buildLaplacianPyramids(usrc2, uLB);
 	t1.print("  buildLapB");
+
+
+	t1.start();
+	// 輸出
+	for(int i = 0; i < LAP_OCTVS; i++) {
+		uLA[i].out(LA[i]);
+	}
+	for(int i = 0; i < LAP_OCTVS; i++) {
+		uLB[i].out(LB[i]);
+	}
+	t1.print("  output");
+
+
+
 	// 混合金字塔
 	LapPyr LS;
 	t1.start();
