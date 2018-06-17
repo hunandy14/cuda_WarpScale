@@ -565,75 +565,66 @@ void mergeOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 //======================================================================================
 // 重疊區
 __global__
-void getOverlap_kernel(
-	const uch* usrc1, int src1W, int src1H,
-	const uch* usrc2, int src2W, int src2H,
-	const uch* ublend, int blendW, int blendH,
-	uch* udst, int dstW, int dstH,
-	int* ucorner)
+void getOverlap_kernel2(
+	const uch* src1, int src1W, int src1H,
+	const uch* src2, int src2W, int src2H,
+	uch* cut1, int cut1W, int cut1H,
+	uch* cut2, int cut2W, int cut2H,
+	int* corner)
 {
 	// 偏移量
-	int mx = ucorner[4];
-	int my = ucorner[5];
+	const int mx=corner[4];
+	const int my=corner[5];
+	// 重疊區大小
+	const int lapH=corner[3]-corner[1]-abs(my);
+	const int lapW=corner[2]-corner[0]-mx;
 	// 兩張圖的高度偏差值
-	int myA = my<0? 0:my;
-	int myB = my>0? 0:-my;
+	const int myA = my<0? 0:my;
+	const int myB = my>0? 0:-my;
 
-	int i = blockIdx.x * blockDim.x + threadIdx.x;
-	int j = blockIdx.y * blockDim.y + threadIdx.y;
-	if(j < dstH && i < dstW) { // 會多跑一點點要擋掉
-		int dstIdx = (j*dstW+ i) *3;
-		// 圖1
-		if(i < mx) {
-			for(int rgb = 0; rgb < 3; rgb++) {
-				udst[dstIdx +rgb] = usrc1[(((j+myA)+ucorner[1])*src1W +(i+ucorner[0])) *3+rgb];
-			}
-		}
-		// 重疊區
-		else if(i >= mx && i < ucorner[2]-ucorner[0]) {
-			for(int rgb = 0; rgb < 3; rgb++) {
-				udst[dstIdx +rgb] = ublend[(j*blendW+(i-mx)) *3+rgb];
-			}
-		}
-		// 圖2
-		else if(i >= ucorner[2]-ucorner[0]) {
-			for(int rgb = 0; rgb < 3; rgb++) {
-				udst[dstIdx +rgb] = usrc2[(((j+myB)+ucorner[1])*src2W +((i-mx)+ucorner[0])) *3+rgb];
+	const int i = blockIdx.x * blockDim.x + threadIdx.x;
+	const int j = blockIdx.y * blockDim.y + threadIdx.y;
+
+	if(j < lapH && i < lapW) { // 會多跑一點點要擋掉
+		if (i < corner[2]-corner[0]-mx) {
+			for (int  rgb = 0; rgb < 3; rgb++) {
+				// 圖1
+				cut1[(j*cut2W +(i)) *3+rgb] = 
+					src1[(((j+myA)+corner[1])*src1W +(i+corner[0]+mx)) *3+rgb];
+				// 圖2
+				cut2[(j*cut2W +(i)) *3+rgb] = 
+					src2[(((j+myB)+corner[1])*src2W +((i)+corner[0])) *3+rgb];
 			}
 		}
 	}					
 }
 void getOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
-	const cuImgData& uBlend, cuImgData& uDst, vector<int> corner)
+	cuImgData& ucut1, cuImgData& ucut2, vector<int> corner)
 {
-
 	// 偏移量
-	int mx=corner[4];
-	int my=corner[5];
-	// 兩張圖疊起來大小
-	int newH=corner[3]-corner[1]-abs(my);
-	int newW=corner[2]-corner[0]+mx;
-	uDst.resize(newW, newH, uSrc.bits);
+	const int mx=corner[4];
+	const int my=corner[5];
+	// 重疊區大小
+	const int lapH=corner[3]-corner[1]-abs(my);
+	const int lapW=corner[2]-corner[0]-mx;
 	// 兩張圖的高度偏差值
-	int myA = my<0? 0:my;
-	int myB = my>0? 0:-my;
+	const int myA = my<0? 0:my;
+	const int myB = my>0? 0:-my;
 
 	CudaData<int> ucorner(corner.data(), corner.size());
-
 	// 設置大小
-	int srcW = uSrc.width;
-	int srcH = uSrc.height;
-	uDst.resize(newW, newH, uSrc.bits);
-
+	ucut1.resize(lapW, lapH, uSrc.bits);
+	ucut2.resize(lapW, lapH, uSrc2.bits);
+	
 	// 設置執行緒
 	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
-	dim3 grid(ceil(newW / BLOCK_DIM_X)+1, ceil(newH / BLOCK_DIM_Y)+1);
+	dim3 grid(ceil(lapW / BLOCK_DIM_X)+1, ceil(lapH / BLOCK_DIM_Y)+1);
 	// 執行 kernel
-	getOverlap_kernel <<< grid, block >>> (
+	getOverlap_kernel2 <<< grid, block >>> (
 		uSrc, uSrc.width, uSrc.height,
 		uSrc2, uSrc2.width, uSrc2.height,
-		uBlend, uBlend.width, uBlend.height,
-		uDst, uDst.width, uDst.height,
+		ucut1, ucut1.width, ucut1.height,
+		ucut2, ucut2.width, ucut2.height,
 		ucorner
 	);
 }

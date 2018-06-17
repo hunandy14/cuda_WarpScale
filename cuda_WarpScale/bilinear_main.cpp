@@ -98,13 +98,15 @@ int main(){
 	/* 金字塔混和 */
 	cout << "\n\n金字塔混和\n" << endl;
 
-	
+	/*
 	ImgData t1("img/_TestA.bmp"), t2("img/_TestB.bmp"), out;
 	cuImgData ut1(t1), ut2(t2), uout;
 	uout.resize(t1);
-	imgCopy(ut1, uout);
+	
+	getOverlap(ut1, uout);
+	
 	uout.out(out);
-	//out.bmp("__bugTest0.bmp");
+	out.bmp("__bugTest0.bmp");*/
 
 	LapBlend_Tester();
 

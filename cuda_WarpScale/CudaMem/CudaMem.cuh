@@ -45,7 +45,7 @@ public:
 		if(size > len) {throw out_of_range("memcpyIn input size > curr size.");}
 		cudaMemcpy(gpuData, dataIn, size*sizeof(T), cudaMemcpyHostToDevice);
 	}
-	void memcpyOut(T* dst ,size_t size) {
+	void memcpyOut(T* dst ,size_t size) const {
 		cudaMemcpy(dst, gpuData, size*sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	void memset(int value, size_t size) {

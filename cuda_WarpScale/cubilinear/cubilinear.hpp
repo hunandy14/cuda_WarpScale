@@ -38,7 +38,7 @@ public:
 		height = dst.height;
 		bits   = dst.bits;
 	}
-	void out(basic_ImgData& dst) {
+	void out(basic_ImgData& dst) const {
 		dst.raw_img.resize(width*height * bits>>3);
 		dst.width  = width;
 		dst.height = height;
@@ -97,5 +97,6 @@ __host__ void GaussianBlur(const cuImgData & uSrc, cuImgData & uDst, int matLen,
 void imgBlendHalf(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
 void imgBlendAlpha(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
 void mergeOverlap(const cuImgData & usrc1, const cuImgData & usrc2, const cuImgData & ublend, cuImgData & udst, vector<int> corner);
+void getOverlap(const cuImgData & uSrc, const cuImgData & uSrc2, cuImgData & ucut1, cuImgData & ucut2, vector<int> corner);
 
 

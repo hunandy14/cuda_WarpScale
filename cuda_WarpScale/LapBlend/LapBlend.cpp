@@ -312,7 +312,7 @@ void getOverlap(const basic_ImgData &src1, const basic_ImgData &src2,
 			if (i >= mx) {
 				for (int  rgb = 0; rgb < 3; rgb++) {
 					cut2.raw_img[(j*cut2.width +(i-mx)) *3+rgb] = 
-						src2.raw_img[(((j+myB)+corner[1])*src1.width +((i-mx)+corner[0])) *3+rgb];
+						src2.raw_img[(((j+myB)+corner[1])*src2.width +((i-mx)+corner[0])) *3+rgb];
 				}
 			}
 		}
@@ -320,7 +320,7 @@ void getOverlap(const basic_ImgData &src1, const basic_ImgData &src2,
 	//ImgData_write(cut1, "__cut1.bmp");
 	//ImgData_write(cut2, "__cut2.bmp");
 }
-
+// 取出重疊區(沒有裁減)
 void getOverlap_noncut(const basic_ImgData &src1, const basic_ImgData &src2,
 	basic_ImgData& cut1, basic_ImgData& cut2, vector<int> corner)
 {
@@ -448,46 +448,31 @@ void mergeOverlap_noncut(const basic_ImgData &src1, const basic_ImgData &src2,
 
 //==================================================================================
 // 混合兩張投影過(未裁減)的圓柱，過程會自動裁減輸出
-void WarpCyliMuitBlend(basic_ImgData &dst, 
-	const basic_ImgData &src1, const basic_ImgData &src2,
-	int mx, int my) 
+void WarpCyliMuitBlend(cuImgData &udst, 
+	const cuImgData &usrc1, const cuImgData &usrc2,
+	const vector<int>& corner) 
 {
 	Timer t1;
-	t1.priSta=0;
-	// 輸入資料到GPU
-	cuImgData usrc1(src1), usrc2(src2), udst; // 3ms
-	
-	// 檢測圓柱圖角點(minX, minY, maxX, maxY, mx, my)
-	vector<int> corner{0, 0, 0, 0, mx, my};
-	WarpCyliCorner(src1, corner); // 0ms
+	t1.priSta=1;
 
+	// 暫存
+	cuImgData ucut1, ucut2, ublend;
 
 	// 取出重疊區
-	basic_ImgData cut1, cut2;
 	t1.start();
-	getOverlap(src1, src2, cut1, cut2, corner); // 5ms
+	getOverlap(usrc1, usrc2, ucut1, ucut2, corner); // 5ms
 	t1.print("  getOverlap");
-	cuImgData ucut1(cut1), ucut2(cut2), ublend; // 1ms
-
 
 	// 混合重疊區
 	t1.start();
 	blendLaplacianImg(ublend, ucut1, ucut2); // 53ms -> 21ms->19ms
 	t1.print("  blendLaplacianImg");
+	
 	// 合併三張圖片
 	t1.start();
 	mergeOverlap(usrc1, usrc2, ublend, udst, corner); // 5ms -> 2ms
 	t1.print("  mergeOverlap");
-
-
-
-	// 輸出圖像
-	int newH=corner[3]-corner[1]-abs(my);
-	int newW=corner[2]-corner[0]+mx;
-	ImgData_resize(dst, newW, newH, 24);// 1ms
-	udst.out(dst); // 2ms
 }
-
 
 
 //==================================================================================
@@ -503,12 +488,19 @@ void LapBlender(basic_ImgData &dst,
 	t.start();
 	WarpCylindrical(warp1, src1, ft);
 	WarpCylindrical(warp2, src2, ft);
-	t.print("WarpCylindrical");
-
+	t.print("WarpCylindrical"); // 20ms
 	
+	// 檢測圓柱圖角點(minX, minY, maxX, maxY, mx, my)
+	vector<int> corner{0, 0, 0, 0, mx, my};
+	WarpCyliCorner(warp1, corner); // 0ms
+
+	// 混合圖像
+	cuImgData uwarp1(warp1), uwarp2(warp2), udst;
 	t.start();
-	WarpCyliMuitBlend(dst, warp1, warp2, mx, my);
+	WarpCyliMuitBlend(udst, uwarp1, uwarp2, corner); // 31ms
 	t.print("WarpCyliMuitBlend");
+
+	udst.out(dst);
 }
 
 
