@@ -62,8 +62,10 @@ int main(){
 
 	Timer T;
 	double ratio = 1;
+
+	/*
 	// 讀取
-	ImgData src("img/_test.bmp"); ratio = 2;
+	ImgData src("img/kanna.bmp"); ratio = 2;
 	//ImgData src("img/737400.bmp"); ratio = 1;
 	ImgData dst;
 	dst.resize(src.width*ratio, src.height*ratio, src.bits);
@@ -89,19 +91,20 @@ int main(){
 	WarpScale_rgb(src, dst, ratio);
 	T.print(" WarpScale_rgb");
 	//dst.bmp("testImg.bmp");
+	*/
+
+
 
 	/* 金字塔混和 */
 	cout << "\n\n金字塔混和\n" << endl;
 
-	/*
-	ImgData t1("img/_Test0.bmp"), out;
-	cuImgData ut1(t1), ut2;
-	ut2.resize(t1);
-
-	imgGau(ut1, ut2);
-
-	ut2.out(out);
-	out.bmp("__bugTest.bmp");*/
+	
+	ImgData t1("img/_TestA.bmp"), t2("img/_TestB.bmp"), out;
+	cuImgData ut1(t1), ut2(t2), uout;
+	uout.resize(t1);
+	imgCopy(ut1, uout);
+	uout.out(out);
+	//out.bmp("__bugTest0.bmp");
 
 	LapBlend_Tester();
 

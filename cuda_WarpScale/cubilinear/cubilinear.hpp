@@ -76,11 +76,29 @@ public:
 	uint16_t bits;
 };
 
-__host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
-__host__ void imgSub(cuImgData & uSrc, const cuImgData & uDst);
-__host__ void GaussianBlur(const cuImgData & uSrc, cuImgData & uDst, int matLen, double sigma=0);
+// 複製圖片
+__host__ void imgCopy(const cuImgData & uSrc, cuImgData & uDst);
+
+// 線性插補
 __host__ void WarpScale_rgb(const cuImgData & uSrc, cuImgData & uDst, double ratio);
 __host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
+__host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 
+// 圖片相減
+__host__ void imgSub(cuImgData & uSrc, const cuImgData & uDst);
+// 圖片相加
+__host__ void imgAdd(cuImgData & uSrc, const cuImgData & uDst);
+// 高斯模糊
+__host__ void GaussianBlur(const cuImgData & uSrc, cuImgData & uDst, int matLen, double sigma=0);
+
+
+
+// 金字塔混和
+void imgBlendHalf(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
+void imgBlendAlpha(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
+
+void blendLaplacianPyramids(vector<cuImgData>& LS, const vector<cuImgData>& LA, const vector<cuImgData>& LB);
+
+void mergeOverlap(const cuImgData & usrc1, const cuImgData & usrc2, const cuImgData & ublend, cuImgData & udst, vector<int> corner);
 
 

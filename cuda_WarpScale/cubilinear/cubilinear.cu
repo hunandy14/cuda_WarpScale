@@ -16,6 +16,38 @@ using namespace std;
 
 using uch = unsigned char;
 
+//======================================================================================
+// 複製圖片
+__global__
+void imgCopy_kernel(const uch* src, int srcW, int srcH, uch* dst, int dstW, int dstH)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < srcH && i < srcW) { // 會多跑一點點要擋掉
+		int srcIdx = (j*srcW +i) *3;
+		int dstIdx = (j*dstW +i) *3;
+
+		dst[dstIdx+0] = src[srcIdx+0];
+		dst[dstIdx+1] = src[srcIdx+1];
+		dst[dstIdx+2] = src[srcIdx+2];
+	}					
+}
+// 複製圖片
+__host__
+void imgCopy(const cuImgData & uSrc, cuImgData & uDst) {
+	// 設置大小
+	int srcW = uSrc.width;
+	int srcH = uSrc.height;
+
+	uDst.resize(uSrc);
+
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(srcW / BLOCK_DIM_X)+1, ceil(srcH / BLOCK_DIM_Y)+1);
+	// 執行 kernel
+	imgCopy_kernel <<< grid, block >>> (uSrc, uSrc.width, uSrc.height, uDst, uDst.width, uDst.height);
+}
+
 
 //======================================================================================
 // 快速線性插值_核心
@@ -227,7 +259,6 @@ void imgSub_kernel(uch* src, int srcW, int srcH, const uch* dst, int dstW, int d
 		src[srcIdx+2] = pixB;
 	}
 }
-// 圖像相減
 __host__
 void imgSub(cuImgData & uSrc, const cuImgData & uDst) {
 	// 設置大小
@@ -239,7 +270,43 @@ void imgSub(cuImgData & uSrc, const cuImgData & uDst) {
 	// 執行 kernel
 	imgSub_kernel <<< grid, block >>> (uSrc, uSrc.width, uSrc.height, uDst, uDst.width, uDst.height);
 }
+// 圖像相加
+__global__
+void imgAdd_kernel(uch* src, int srcW, int srcH, const uch* dst, int dstW, int dstH)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < srcH && i < srcW) { // 會多跑一點點要擋掉
+		int srcIdx = (j*srcW + i) * 3;
+		int dstIdx = (j*dstW + i) * 3;
 
+		int pixR = (int)src[srcIdx+0] + (int)dst[dstIdx+0] -128;
+		int pixG = (int)src[srcIdx+1] + (int)dst[dstIdx+1] -128;
+		int pixB = (int)src[srcIdx+2] + (int)dst[dstIdx+2] -128;
+
+		pixR = pixR <0? 0: pixR;
+		pixG = pixG <0? 0: pixG;
+		pixB = pixB <0? 0: pixB;
+		pixR = pixR >255? 255: pixR;
+		pixG = pixG >255? 255: pixG;
+		pixB = pixB >255? 255: pixB;
+
+		src[srcIdx+0] = pixR;
+		src[srcIdx+1] = pixG;
+		src[srcIdx+2] = pixB;
+	}
+}
+__host__
+void imgAdd(cuImgData & uSrc, const cuImgData & uDst) {
+	// 設置大小
+	int srcW = uSrc.width;
+	int srcH = uSrc.height;
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(srcW / BLOCK_DIM_X)+1, ceil(srcH / BLOCK_DIM_Y)+1);
+	// 執行 kernel
+	imgAdd_kernel <<< grid, block >>> (uSrc, uSrc.width, uSrc.height, uDst, uDst.width, uDst.height);
+}
 
 //======================================================================================
 // 高斯核心
@@ -283,7 +350,7 @@ static vector<double> getGaussianKernel( int n, double sigma)
 	return kernel;
 }
 //==============================================
-// 高私模糊
+// 高私模糊核心
 __global__
 void imgGauX_kernel(
 	const uch* src, int srcW, int srcH, 
@@ -321,6 +388,7 @@ void imgGauX_kernel(
 		dst[srcIdx+2] = sumB;
 	}
 }
+// 高斯模糊
 __host__
 void GaussianBlur(const cuImgData& uSrc, cuImgData & uDst, int matLen, double sigma) {
 	// 設置大小
@@ -336,11 +404,190 @@ void GaussianBlur(const cuImgData& uSrc, cuImgData & uDst, int matLen, double si
 	// 高斯 kernle
 	vector<double> gau_mat = getGaussianKernel(matLen, sigma);
 	CudaData<double> uMat(gau_mat.data(), gau_mat.size());
-	// 執行 kernel
+	// 執行 kernel (單X方向)
 	imgGauX_kernel <<< grid, block >>> (
 		uSrc, uSrc.width, uSrc.height, 
 		uDst, uTemp,
 		uMat, matLen
 	);
 }
+
+
+
+//======================================================================================
+// 混合
+__global__
+void imgBlendHalf_kernel(const uch* imgA, const uch* imgB, uch* dst, int dstW, int dstH)
+{
+	int center = dstW >>1;
+
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < dstH && i < dstW) { // 會多跑一點點要擋掉
+		int dstIdx = (j* dstW+i)*3;
+		int LAIdx  = (j*dstW+i)*3;
+		int LBIdx  = (j*dstW+i)*3;
+
+		for(int rgb = 0; rgb < 3; rgb++) {
+			// 拉普拉斯差值區 (左邊就放左邊差值，右邊放右邊差值，正中間放平均)
+			if(i == center) {// 正中間
+				dst[dstIdx +rgb] = (imgA[LAIdx +rgb] + imgB[LBIdx +rgb]) >>1;
+			} else if(i > center) {// 右半部
+				dst[dstIdx +rgb] = imgB[LBIdx +rgb];
+			} else { // 左半部
+				dst[dstIdx +rgb] = imgA[LAIdx +rgb];
+			}
+		}
+	}
+}
+__host__
+void imgBlendHalf(const cuImgData& uimgA, const cuImgData& uimgB, cuImgData& uDst) {
+	// 設置大小
+	int dstW = uDst.width;
+	int dstH = uDst.height;
+	uDst.resize(uimgA);
+
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(dstW / BLOCK_DIM_X)+1, ceil(dstH / BLOCK_DIM_Y)+1);
+	// 執行 kernel
+	imgBlendHalf_kernel <<< grid, block >>> (uimgA, uimgB, uDst, uDst.width, uDst.height);
+}
+__global__
+void imgBlendAlpha_kernel(const uch* imgA, const uch* imgB, uch* dst, int dstW, int dstH)
+{
+	double rat = 1.0 / dstW;
+
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < dstH && i < dstW) { // 會多跑一點點要擋掉
+		int dstIdx = (j* dstW+i)*3;
+		int LAIdx  = (j*dstW+i)*3;
+		int LBIdx  = (j*dstW+i)*3;
+
+		for(int rgb = 0; rgb < 3; rgb++) {
+			double r1 = rat*i;
+			double r2 = 1.0-r1;
+			dst[dstIdx +rgb] = imgA[LAIdx +rgb]*r2 + imgB[LBIdx +rgb]*r1;
+		}
+	}
+}
+__host__
+void imgBlendAlpha(const cuImgData& uimgA, const cuImgData& uimgB, cuImgData& uDst) {
+	// 設置大小
+	int dstW = uDst.width;
+	int dstH = uDst.height;
+	uDst.resize(uimgA);
+
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(dstW / BLOCK_DIM_X)+1, ceil(dstH / BLOCK_DIM_Y)+1);
+	// 執行 kernel
+	imgBlendAlpha_kernel <<< grid, block >>> (uimgA, uimgB, uDst, uDst.width, uDst.height);
+}
+
+__host__
+void blendLaplacianPyramids(vector<cuImgData>& LS, const vector<cuImgData>& LA, const vector<cuImgData>& LB) {
+	LS.resize(LA.size());
+
+	// 混合圖片
+	for(int idx = 0; idx < LS.size(); idx++) {
+		// 初始化
+		cuImgData& dst = LS[idx];
+		dst.resize(LA[idx].width, LA[idx].height, LA[idx].bits);
+		// 開始混合各層
+		if(idx == LS.size()-1) {
+			imgBlendAlpha(LA[idx], LB[idx], dst);
+		} else {
+			imgBlendHalf(LA[idx], LB[idx], dst);
+		}
+	}
+}
+
+
+
+//======================================================================================
+// 合併圖片
+__global__
+void mergeOverlap_kernel(
+	const uch* usrc1, int src1W, int src1H,
+	const uch* usrc2, int src2W, int src2H,
+	const uch* ublend, int blendW, int blendH,
+	uch* udst, int dstW, int dstH,
+	int* ucorner)
+{
+	// 偏移量
+	int mx = ucorner[4];
+	int my = ucorner[5];
+	// 兩張圖的高度偏差值
+	int myA = my<0? 0:my;
+	int myB = my>0? 0:-my;
+
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < dstH && i < dstW) { // 會多跑一點點要擋掉
+		int dstIdx = (j*dstW+ i) *3;
+		// 圖1
+		if(i < mx) {
+			for(int rgb = 0; rgb < 3; rgb++) {
+				udst[dstIdx +rgb] = usrc1[(((j+myA)+ucorner[1])*src1W +(i+ucorner[0])) *3+rgb];
+			}
+		}
+		// 重疊區
+		else if(i >= mx && i < ucorner[2]-ucorner[0]) {
+			for(int rgb = 0; rgb < 3; rgb++) {
+				udst[dstIdx +rgb] = ublend[(j*blendW+(i-mx)) *3+rgb];
+			}
+		}
+		// 圖2
+		else if(i >= ucorner[2]-ucorner[0]) {
+			for(int rgb = 0; rgb < 3; rgb++) {
+				udst[dstIdx +rgb] = usrc2[(((j+myB)+ucorner[1])*src2W +((i-mx)+ucorner[0])) *3+rgb];
+			}
+		}
+	}					
+}
+void mergeOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
+	const cuImgData& uBlend, cuImgData& uDst, vector<int> corner)
+{
+	
+	// 偏移量
+	int mx=corner[4];
+	int my=corner[5];
+	// 兩張圖疊起來大小
+	int newH=corner[3]-corner[1]-abs(my);
+	int newW=corner[2]-corner[0]+mx;
+	uDst.resize(newW, newH, uSrc.bits);
+	// 兩張圖的高度偏差值
+	int myA = my<0? 0:my;
+	int myB = my>0? 0:-my;
+
+	CudaData<int> ucorner(corner.data(), corner.size());
+
+	// 設置大小
+	int srcW = uSrc.width;
+	int srcH = uSrc.height;
+	uDst.resize(newW, newH, uSrc.bits);
+
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(newW / BLOCK_DIM_X)+1, ceil(newH / BLOCK_DIM_Y)+1);
+	// 執行 kernel
+	mergeOverlap_kernel <<< grid, block >>> (
+		uSrc, uSrc.width, uSrc.height,
+		uSrc2, uSrc2.width, uSrc2.height,
+		uBlend, uBlend.width, uBlend.height,
+		uDst, uDst.width, uDst.height,
+		ucorner
+	);
+
+
+
+}
+
+
+
+
+
+
 
