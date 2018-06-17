@@ -204,8 +204,7 @@ void WarpCylindrical_CoorTranfer_Inve(double R,
 	x = (x - width *.5)*k + width *.5;
 	y = (y - height*.5)*k + height*.5;
 }
-// 圓柱投影 basic_ImgData
-void WarpCylindrical(basic_ImgData &dst, const basic_ImgData &src, 
+bvoid WarpCylindrical(basic_ImgData &dst, const basic_ImgData &src, 
 	double R ,int mx=0, int my=0, double edge=0.0)
 {
 	int srcW = src.width;
@@ -233,32 +232,36 @@ void WarpCylindrical(basic_ImgData &dst, const basic_ImgData &src,
 // 找到圓柱投影角點
 void WarpCyliCorner(const basic_ImgData &src, vector<int>& corner) {
 	corner.resize(6);
+	int srcW = src.width;
+	int srcH = src.height;
+
 	// 左上角角點
-	for (int i = 0; i < src.width; i++) {
-		int pix = (int)src.raw_img[(src.height/2*src.width +i)*3 +0];
-		if (i<src.width/2 and pix != 0) {
+	for (int i = 0; i < srcW; i++) {
+		int pix = (int)src.raw_img[(srcH/2*srcW +i)*3 +0];
+		if (i < (srcW>>1) && pix != 0) {
 			corner[0]=i;
 			//cout << "corner=" << corner[0] << endl;
-			i=src.width/2;
-		} else if (i>src.width/2 and pix == 0) {
+			i = srcW>>1;
+		} else if (i > (srcW>>1) && pix == 0) {
 			corner[2] = i-1;
 			//cout << "corner=" << corner[2] << endl;
 			break;
 		}
 	}
 	// 右上角角點
-	for (int i = 0; i < src.height; i++) {
-		int pix = (int)src.raw_img[(i*src.width +corner[0])*3 +0];
-		if (i<src.height/2 and pix != 0) {
-			corner[1] = i;
+	for (int j = 0; j < srcH; j++) {
+		int pix = (int)src.raw_img[(j*srcW +corner[0])*3 +0];
+		if (j < (srcH>>1) && pix != 0) {
+			corner[1] = j;
 			//cout << "corner=" << corner[2] << endl;
-			i=src.height/2;
-		} else if (i>src.height/2 and pix == 0) {
-			corner[3] = i-1;
+			j = srcH>>1;
+		} else if (j > (srcH>>1) && pix == 0) {
+			corner[3] = j-1;
 			//cout << "corner=" << corner[3] << endl;
 			break;
 		}
 	}
+
 }
 
 
@@ -323,13 +326,14 @@ void LapBlender(basic_ImgData &dst,
 	double ft, int mx, int my)
 {
 	Timer t;
+	t.priSta=1;
 	cuImgData uwarp1, uwarp2;
 
 	t.start();
 	cuImgData usrc1(src1), usrc2(src2);
 	WarpCylindrical(usrc1, uwarp1, ft);
 	WarpCylindrical(usrc2, uwarp2, ft);
-	t.print("WarpCylindrical"); // 20ms->2+2ms
+	t.print("  WarpCylindrical"); // 20ms->2+2ms
 
 	// 檢測圓柱圖角點(minX, minY, maxX, maxY, mx, my)
 	t.start();
@@ -337,18 +341,18 @@ void LapBlender(basic_ImgData &dst,
 	basic_ImgData warp1;
 	uwarp1.out(warp1);
 	WarpCyliCorner(warp1, corner); // 0ms
-	t.print("WarpCyliCorner"); // 8ms
+	t.print("  WarpCyliCorner"); // 8ms
 
 	// 混合圖像
 	t.start();
 	cuImgData udst;
 	WarpCyliMuitBlend(udst, uwarp1, uwarp2, corner); // 31ms
-	t.print("WarpCyliMuitBlend");
+	t.print("  WarpCyliMuitBlend");
 
 
 	t.start();
 	udst.out(dst);
-	t.print("##DATA OUT");
+	t.print("  ##DATA OUT");
 }
 
 // 範例程式
