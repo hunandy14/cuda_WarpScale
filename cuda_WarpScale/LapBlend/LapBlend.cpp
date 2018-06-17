@@ -194,41 +194,6 @@ void blendLaplacianImg(cuImgData& udst, const cuImgData& usrc1, const cuImgData&
 //==================================================================================
 // 圓柱投影
 //==================================================================================
-// 圓柱投影座標反轉換
-inline static
-void WarpCylindrical_CoorTranfer_Inve(double R,
-	size_t width, size_t height, double& x, double& y)
-{
-	double r2 = (x - width*.5);
-	double k = sqrt(R*R + r2*r2) / R;
-	x = (x - width *.5)*k + width *.5;
-	y = (y - height*.5)*k + height*.5;
-}
-bvoid WarpCylindrical(basic_ImgData &dst, const basic_ImgData &src, 
-	double R ,int mx=0, int my=0, double edge=0.0)
-{
-	int srcW = src.width;
-	int srcH = src.height;
-	int moveH = (srcH*edge) + my;
-	int moveW = mx;
-
-	int dstW = srcW+moveW;
-	int dstH = srcH * (1+edge*2);
-	ImgData_resize(dst, dstW, dstH, src.bits);
-
-	// 圓柱投影
-#pragma omp parallel for
-	for (int j = 0; j < srcH; j++){
-		for (int i = 0; i < srcW; i++){
-			double x = i, y = j;
-			WarpCylindrical_CoorTranfer_Inve(R, srcW, srcH, x, y);
-			if (x >= 0 && y >= 0 && x < srcW - 1 && y < srcH - 1) {
-				unsigned char* p = &dst.raw_img[((j+moveH)*(srcW+moveW) + (i+moveW)) *3];
-				fast_Bilinear_rgb(p, src, y, x);
-			}
-		}
-	}
-}
 // 找到圓柱投影角點
 void WarpCyliCorner(const basic_ImgData &src, vector<int>& corner) {
 	corner.resize(6);
@@ -298,29 +263,6 @@ void WarpCyliMuitBlend(cuImgData &udst,
 // 公開函式
 //==================================================================================
 // 混合原始圖
-void LapBlender2(basic_ImgData &dst, 
-	const basic_ImgData &src1, const basic_ImgData &src2,
-	double ft, int mx, int my)
-{
-	Timer t;
-	basic_ImgData warp1, warp2;
-	t.start();
-	WarpCylindrical(warp1, src1, ft);
-	WarpCylindrical(warp2, src2, ft);
-	t.print("WarpCylindrical"); // 20ms
-	
-	// 檢測圓柱圖角點(minX, minY, maxX, maxY, mx, my)
-	vector<int> corner{0, 0, 0, 0, mx, my};
-	WarpCyliCorner(warp1, corner); // 0ms
-
-	// 混合圖像
-	cuImgData uwarp1(warp1), uwarp2(warp2), udst;
-	t.start();
-	WarpCyliMuitBlend(udst, uwarp1, uwarp2, corner); // 31ms
-	t.print("WarpCyliMuitBlend");
-
-	udst.out(dst);
-}
 void LapBlender(basic_ImgData &dst, 
 	const basic_ImgData &src1, const basic_ImgData &src2,
 	double ft, int mx, int my)
