@@ -269,7 +269,7 @@ void WarpCyliMuitBlend(cuImgData &udst,
 	const vector<int>& corner) 
 {
 	Timer t1;
-	t1.priSta=1;
+	t1.priSta=0;
 
 	// 暫存
 	cuImgData ucut1, ucut2, ublend;
@@ -295,7 +295,7 @@ void WarpCyliMuitBlend(cuImgData &udst,
 // 公開函式
 //==================================================================================
 // 混合原始圖
-void LapBlender(basic_ImgData &dst, 
+void LapBlender2(basic_ImgData &dst, 
 	const basic_ImgData &src1, const basic_ImgData &src2,
 	double ft, int mx, int my)
 {
@@ -318,6 +318,39 @@ void LapBlender(basic_ImgData &dst,
 
 	udst.out(dst);
 }
+void LapBlender(basic_ImgData &dst, 
+	const basic_ImgData &src1, const basic_ImgData &src2,
+	double ft, int mx, int my)
+{
+	Timer t;
+	cuImgData uwarp1, uwarp2;
+
+	t.start();
+	cuImgData usrc1(src1), usrc2(src2);
+	WarpCylindrical(usrc1, uwarp1, ft);
+	WarpCylindrical(usrc2, uwarp2, ft);
+	t.print("WarpCylindrical"); // 20ms->2+2ms
+
+	// 檢測圓柱圖角點(minX, minY, maxX, maxY, mx, my)
+	t.start();
+	vector<int> corner{0, 0, 0, 0, mx, my};
+	basic_ImgData warp1;
+	uwarp1.out(warp1);
+	WarpCyliCorner(warp1, corner); // 0ms
+	t.print("WarpCyliCorner"); // 8ms
+
+	// 混合圖像
+	t.start();
+	cuImgData udst;
+	WarpCyliMuitBlend(udst, uwarp1, uwarp2, corner); // 31ms
+	t.print("WarpCyliMuitBlend");
+
+
+	t.start();
+	udst.out(dst);
+	t.print("##DATA OUT");
+}
+
 // 範例程式
 void LapBlend_Tester() {
 	basic_ImgData src1, src2, dst;

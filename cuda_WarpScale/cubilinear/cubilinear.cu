@@ -630,6 +630,67 @@ void getOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 }
 
 
+//======================================================================================
+// 圓柱投影座標反轉換
+__device__ __host__ inline static
+void WarpCylindrical_CoorTranfer_Inve(double R,
+	size_t width, size_t height, double& x, double& y)
+{
+	double r2 = (x - width*.5);
+	double k = sqrt(R*R + r2*r2) / R;
+	x = (x - width *.5)*k + width *.5;
+	y = (y - height*.5)*k + height*.5;
+}
+
+// 圓柱投影
+__global__
+void WarpCylindrical_kernel(
+	const uch* src, int srcW, int srcH, 
+	uch* dst, int dstW, int dstH, 
+	double R ,int mx=0, int my=0, double edge=0.0
+)
+{
+	// 設置位移
+	int moveH = (srcH*edge) + my;
+	int moveW = mx;
+	
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < srcH && i < srcW) { // 會多跑一點點要擋掉
+		double x = i, y = j;
+		WarpCylindrical_CoorTranfer_Inve(R, srcW, srcH, x, y);
+		if (x >= 0 && y >= 0 && x < srcW - 1 && y < srcH - 1) {
+			unsigned char* p = &dst[((j+moveH)*(srcW+moveW) + (i+moveW)) *3];
+			fast_Bilinear(src, srcW, srcH, p, y, x);
+		}
+	}					
+}
+__host__
+void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst, 
+	double R ,int mx, int my, double edge)
+{
+	int srcW = uSrc.width;
+	int srcH = uSrc.height;
+
+	int moveH = (srcH*edge) + my;
+	int moveW = mx;
+
+	int dstW = srcW+moveW;
+	int dstH = srcH * (1+edge*2);
+
+	// 設置大小
+	uDst.resize(dstW, dstH, uSrc.bits);
+
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(srcW / BLOCK_DIM_X)+1, ceil(srcH / BLOCK_DIM_Y)+1);
+	// 執行 kernel
+	WarpCylindrical_kernel <<< grid, block >>> (
+		uSrc, uSrc.width, uSrc.height, 
+		uDst, uDst.width, uDst.height, 
+		R, mx, my, edge
+	);
+}
 
 
-
+//======================================================================================
