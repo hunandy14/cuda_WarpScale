@@ -108,280 +108,10 @@ inline static void fast_NearestNeighbor_rgb(unsigned char* p,
 }
 
 
-
-//==================================================================================
-// 模糊圖片
-//==================================================================================
-// 高斯核心
-static vector<double> getGaussianKernel( int n, double sigma)
-{
-	const int SMALL_GAUSSIAN_SIZE = 7;
-	static const float small_gaussian_tab[][SMALL_GAUSSIAN_SIZE] =
-	{
-		{1.f},
-		{0.25f, 0.5f, 0.25f},
-		{0.0625f, 0.25f, 0.375f, 0.25f, 0.0625f},
-		{0.03125f, 0.109375f, 0.21875f, 0.28125f, 0.21875f, 0.109375f, 0.03125f}
-	};
-
-	const float* fixed_kernel = n % 2 == 1 && n <= SMALL_GAUSSIAN_SIZE && sigma <= 0 ?
-		small_gaussian_tab[n>>1] : 0;
-
-	vector<double> kernel(n);
-	double* cd = kernel.data();
-
-	double sigmaX = sigma > 0 ? sigma : ((n-1)*0.5 - 1)*0.3 + 0.8;
-	double scale2X = -0.5/(sigmaX*sigmaX);
-	double sum = 0;
-
-	int i;
-	for( i = 0; i < n; i++ )
-	{
-		double x = i - (n-1)*0.5;
-		double t = fixed_kernel ? (double)fixed_kernel[i] : std::exp(scale2X*x*x);
-		cd[i] = t;
-		sum += cd[i];
-	}
-
-	sum = 1./sum;
-
-	for( i = 0; i < n; i++ )
-	{
-		cd[i] *= sum;
-	}
-
-	return kernel;
-}
-// 高斯模糊
-static void GaussianBlur(const basic_ImgData& src, basic_ImgData& dst, size_t mat_len, double sigma=0)
-{
-	Timer t1;
-	size_t srcW = src.width;
-	size_t srcH = src.height;
-	
-	vector<double> gau_mat = getGaussianKernel(mat_len, sigma);
-	// 初始化 dst
-	ImgData_resize(dst, srcW, srcH, src.bits);
-	// 緩存
-	vector<double> img_gauX(srcW*srcH*3);
-
-	// 高斯模糊 X 軸
-	const size_t r = gau_mat.size() / 2;
-#pragma omp parallel for
-	for (int j = 0; j < srcH; ++j) {
-		for (int i = 0; i < srcW; ++i) {
-			double sumR = 0;
-			double sumG = 0;
-			double sumB = 0;
-			for (int k = 0; k < gau_mat.size(); ++k) {
-				int idx = i-r + k;
-				// idx超出邊緣處理
-				if (idx < 0) {
-					idx = 0;
-				} else if (idx >(int)(srcW-1)) {
-					idx = (srcW-1);
-				}
-				sumR += (double)src.raw_img[(j*srcW + idx)*3 + 0] * gau_mat[k];
-				sumG += (double)src.raw_img[(j*srcW + idx)*3 + 1] * gau_mat[k];
-				sumB += (double)src.raw_img[(j*srcW + idx)*3 + 2] * gau_mat[k];
-			}
-			img_gauX[(j*srcW + i)*3 + 0] = sumR;
-			img_gauX[(j*srcW + i)*3 + 1] = sumG;
-			img_gauX[(j*srcW + i)*3 + 2] = sumB;
-		}
-	}
-	// 高斯模糊 Y 軸
-#pragma omp parallel for
-	for (int j = 0; j < srcH; ++j) {
-		for (int i = 0; i < srcW; ++i) {
-			double sumR = 0;
-			double sumG = 0;
-			double sumB = 0;
-			for (int k = 0; k < gau_mat.size(); ++k) {
-				int idx = j-r + k;
-				// idx超出邊緣處理
-				if (idx < 0) {
-					idx = 0;
-				} else if (idx > (int)(srcH-1)) {
-					idx = (srcH-1);
-				}
-				sumR += img_gauX[(idx*srcW + i)*3 + 0] * gau_mat[k];
-				sumG += img_gauX[(idx*srcW + i)*3 + 1] * gau_mat[k];
-				sumB += img_gauX[(idx*srcW + i)*3 + 2] * gau_mat[k];
-
-			}
-			dst.raw_img[(j*srcW + i)*3 + 0] = sumR;
-			dst.raw_img[(j*srcW + i)*3 + 1] = sumG;
-			dst.raw_img[(j*srcW + i)*3 + 2] = sumB;
-		}
-	}
-}
-// 積分模糊
-void Lowpass(const basic_ImgData& src, basic_ImgData& dst) {
-	int d=5;
-	// 初始化 dst
-	dst.raw_img.resize(src.width * src.height* src.bits/8.0);
-	dst.width  = src.width;
-	dst.height = src.height;
-	dst.bits   = src.bits;
-	int radius = (d-1) *0.5;
-	// 開始跑圖(邊緣扣除半徑)
-#pragma omp parallel for
-	for (int j = 0; j < src.height; j++) {
-		for (int i = 0; i < src.width; i++) {
-			int r_t=0, g_t=0, b_t=0;
-			// 半徑內平均
-			for (int dy = -radius; dy <= radius; dy++) {
-				for (int dx = -radius; dx <= radius; dx++) {
-					int yy = (j+dy)<0? 0:(j+dy);
-					int xx = (i+dx)<0? 0:(i+dx);
-					if (yy > dst.height-1) yy = dst.height-1;
-					if (xx > dst.width-1) xx = dst.width-1;
-					int posi = (yy*src.width + xx)*3;
-					r_t += src.raw_img[posi +0];
-					g_t += src.raw_img[posi +1];
-					b_t += src.raw_img[posi +2];
-				}
-			}
-			dst.raw_img[(j*src.width+i)*3 +0] = r_t /(d*d);
-			dst.raw_img[(j*src.width+i)*3 +1] = g_t /(d*d);
-			dst.raw_img[(j*src.width+i)*3 +2] = b_t /(d*d);
-		}
-	}
-}
-// 高斯矩陣
-static vector<double> getGauKer(int x){
-	vector<double> kernel(x);
-	double half = (x-1) / 2.f;
-
-	constexpr double rlog5_2 = -0.721348; // 1 / (2.f*log(0.5f))
-	double sigma = sqrt( -powf(x-1-half, 2.f) * rlog5_2 );
-	double rSigma22 = 1.0/(2 * sigma * sigma);
-
-	for(int i = 0; i < x; i++){
-		float g;
-		if(i <= (x - half)){
-			g = exp( -(i*i*rSigma22) );
-		} else{
-			g = 1.0 - exp(-powf(x-i-1, 2.f) * rSigma22);
-		}
-		kernel[i] = g;
-	}
-	return kernel;
-}
-
-
-
 //==================================================================================
 // 金字塔處理
 //==================================================================================
-void WarpScale(const basic_ImgData &src, basic_ImgData &dst, double Ratio){
-	int newH = (int)((src.height * Ratio) +0.5);
-	int newW = (int)((src.width  * Ratio) +0.5);
-	// 初始化 dst
-	dst.raw_img.resize(newW * newH * src.bits/8.0);
-	dst.width  = newW;
-	dst.height = newH;
-	dst.bits   = src.bits;
-	// 跑新圖座標
-
-	int i, j;
-#pragma omp parallel for private(i, j)
-	for (j = 0; j < newH; ++j) {
-		for (i = 0; i < newW; ++i) {
-			// 調整對齊
-			double srcY, srcX;
-			if (Ratio < 1) {
-				srcY = ((j+0.5f)/Ratio) - 0.5;
-				srcX = ((i+0.5f)/Ratio) - 0.5;
-			} else {
-				srcY = j*(src.height-1.f) / (newH-1.f);
-				srcX = i*(src.width -1.f) / (newW-1.f);
-			}
-			// 獲取插補值
-			unsigned char* p = &dst.raw_img[(j*newW + i) *3];
-			if (Ratio>1) {
-				fast_Bilinear_rgb(p, src, srcY, srcX);
-			} else {
-				fast_NearestNeighbor_rgb(p, src, srcY, srcX);
-			}
-		}
-	}
-}
-void pyraUp(const basic_ImgData &src, basic_ImgData &dst) {
-	int newH = (int)(src.height * 2.0);
-	int newW = (int)(src.width  * 2.0);
-
-	// 初始化 dst
-	dst.raw_img.resize(newW * newH * src.bits/8.0);
-	dst.width  = newW;
-	dst.height = newH;
-	dst.bits   = src.bits;
-
-	basic_ImgData temp;
-	WarpScale(src, temp, 2.0);
-	GaussianBlur(temp, dst, 3);
-}
-void pyraDown(const basic_ImgData &src, basic_ImgData &dst) {
-	// 初始化 dst
-	cuImgData usrc(src), utemp, udst;
-	WarpScale_rgb(usrc, utemp, 0.5); // 0.4
-	//WarpScale_rgb(src, temp, 0.5); // 0.7
-	GaussianBlur(utemp, udst, 3);
-	udst.out(dst);
-}
-void imgSub(basic_ImgData &src, const basic_ImgData &dst) {
-	int i, j;
-#pragma omp parallel for private(i, j)
-	for (j = 0; j < src.height; j++) {
-		for (i = 0; i < src.width; i++) {
-			int srcIdx = (j*src.width + i) * 3;
-			int dstIdx = (j*dst.width + i) * 3;
-
-			int pixR = (int)src.raw_img[srcIdx+0] - (int)dst.raw_img[dstIdx+0] +128;
-			int pixG = (int)src.raw_img[srcIdx+1] - (int)dst.raw_img[dstIdx+1] +128;
-			int pixB = (int)src.raw_img[srcIdx+2] - (int)dst.raw_img[dstIdx+2] +128;
-
-			pixR = pixR <0? 0: pixR;
-			pixG = pixG <0? 0: pixG;
-			pixB = pixB <0? 0: pixB;
-			pixR = pixR >255? 255: pixR;
-			pixG = pixG >255? 255: pixG;
-			pixB = pixB >255? 255: pixB;
-
-			src.raw_img[srcIdx+0] = pixR;
-			src.raw_img[srcIdx+1] = pixG;
-			src.raw_img[srcIdx+2] = pixB;
-		}
-	}
-}
-void imgAdd(basic_ImgData &src, const basic_ImgData &dst) {
-#pragma omp parallel for
-	for (int j = 0; j < src.height; j++) {
-		for (int i = 0; i < src.width; i++) {
-			int srcIdx = (j*src.width + i) * 3;
-			int dstIdx = (j*dst.width + i) * 3;
-
-			int pixR = (int)src.raw_img[srcIdx+0] + (int)dst.raw_img[dstIdx+0] -128;
-			int pixG = (int)src.raw_img[srcIdx+1] + (int)dst.raw_img[dstIdx+1] -128;
-			int pixB = (int)src.raw_img[srcIdx+2] + (int)dst.raw_img[dstIdx+2] -128;
-
-			pixR = pixR <0? 0: pixR;
-			pixG = pixG <0? 0: pixG;
-			pixB = pixB <0? 0: pixB;
-			pixR = pixR >255? 255: pixR;
-			pixG = pixG >255? 255: pixG;
-			pixB = pixB >255? 255: pixB;
-
-			src.raw_img[srcIdx+0] = pixR;
-			src.raw_img[srcIdx+1] = pixG;
-			src.raw_img[srcIdx+2] = pixB;
-		}
-	}
-}
-
 // 金字塔
-using LapPyr = vector<basic_ImgData>;
 using cuLapPyr = vector<cuImgData>;
 void buildLaplacianPyramids(const cuImgData &usrc, cuLapPyr &upyr, int octvs=LAP_OCTVS) {
 	upyr.resize(octvs);
@@ -402,52 +132,14 @@ void buildLaplacianPyramids(const cuImgData &usrc, cuLapPyr &upyr, int octvs=LAP
 	}
 }
 // 混合拉普拉斯金字塔
-void imgBlendHalf(const basic_ImgData& imgA, const basic_ImgData& imgB, basic_ImgData& dst) {
-#pragma omp parallel for
-	for(int j = 0; j < dst.height; j++) {
-		for(int i = 0; i < dst.width; i++) {
-			for(int rgb = 0; rgb < 3; rgb++) {
-				int dstIdx = (j* dst.width+i)*3;
-				int LAIdx  = (j*imgA.width+i)*3;
-				int LBIdx  = (j*imgB.width+i)*3;
-				int center = dst.width >>1;
-				// 拉普拉斯差值區 (左邊就放左邊差值，右邊放右邊差值，正中間放平均)
-				if(i == center) {// 正中間
-					dst.raw_img[dstIdx +rgb] = (imgA.raw_img[LAIdx +rgb] + imgB.raw_img[LBIdx +rgb]) >>1;
-				} else if(i > center) {// 右半部
-					dst.raw_img[dstIdx +rgb] = imgB.raw_img[LBIdx +rgb];
-				} else { // 左半部
-					dst.raw_img[dstIdx +rgb] = imgA.raw_img[LAIdx +rgb];
-				}
-			}
-		}
-	}
-}
-void imgBlendAlpha(const basic_ImgData& imgA, const basic_ImgData& imgB, basic_ImgData& dst) {
-	double rat = 1.0 / dst.width;
-#pragma omp parallel for
-	for(int j = 0; j < dst.height; j++) {
-		for(int i = 0; i < dst.width; i++) {
-			for(int rgb = 0; rgb < 3; rgb++) {
-				int dstIdx = (j* dst.width +i)*3;
-				int LAIdx  = (j*imgA.width +i)*3;
-				int LBIdx  = (j*imgB.width +i)*3;
-				double r1 = rat*i;
-				double r2 = 1.0-r1;
-				dst.raw_img[dstIdx +rgb] = imgA.raw_img[LAIdx +rgb]*r2 + imgB.raw_img[LBIdx +rgb]*r1;
-			}
-		}
-	}
-}
-void blendLaplacianPyramids(LapPyr& LS, const LapPyr& LA, const LapPyr& LB) {
+void blendLaplacianPyramids(cuLapPyr& LS, const cuLapPyr& LA, const cuLapPyr& LB) {
 	LS.resize(LA.size());
-	// 高斯矩陣
-	auto gausKernal = getGauKer(LA.back().width);
+
 	// 混合圖片
 	for(int idx = 0; idx < LS.size(); idx++) {
 		// 初始化
-		basic_ImgData& dst = LS[idx];
-		ImgData_resize(dst, LA[idx].width, LA[idx].height, LA[idx].bits);
+		cuImgData& dst = LS[idx];
+		dst.resize(LA[idx].width, LA[idx].height, LA[idx].bits);
 		// 開始混合各層
 		if(idx == LS.size()-1) {
 			imgBlendAlpha(LA[idx], LB[idx], dst);
@@ -473,33 +165,6 @@ void reLaplacianPyramids(cuLapPyr &upyr, cuImgData &udst, int octvs=LAP_OCTVS) {
 	imgCopy(upyr[0], udst);
 }
 // 混合圖片
-void blendLaplacianImg(basic_ImgData& dst, const basic_ImgData& src1, const basic_ImgData& src2) {
-	Timer t1;
-	t1.priSta=0;
-
-	cuLapPyr uLA, uLB, uLS;// todo 警告 move 還沒做 uLS 解構之後傳出去的 udst 就毀了
-	cuImgData usrc1(src1), usrc2(src2), udst;
-
-	// 拉普拉斯金字塔 AB
-	t1.start();
-	buildLaplacianPyramids(usrc1, uLA);
-	t1.print("    buildLapA");
-	t1.start();
-	buildLaplacianPyramids(usrc2, uLB);
-	t1.print("    buildLapB");
-
-	// 混合金字塔
-	t1.start();
-	blendLaplacianPyramids(uLS, uLA, uLB);
-	t1.print("    blendImg");
-	
-	// 還原拉普拉斯金字塔
-	t1.start();
-	reLaplacianPyramids(uLS, udst);
-	t1.print("    rebuildLaplacianPyramids");
-
-	udst.out(dst);
-}
 void blendLaplacianImg(cuImgData& udst, const cuImgData& usrc1, const cuImgData& usrc2) {
 	Timer t1;
 	t1.priSta=0;
@@ -530,9 +195,9 @@ void blendLaplacianImg(cuImgData& udst, const cuImgData& usrc1, const cuImgData&
 // 圓柱投影
 //==================================================================================
 // 圓柱投影座標反轉換
-inline static  void WarpCylindrical_CoorTranfer_Inve(double R,
-	size_t width, size_t height, 
-	double& x, double& y)
+inline static
+void WarpCylindrical_CoorTranfer_Inve(double R,
+	size_t width, size_t height, double& x, double& y)
 {
 	double r2 = (x - width*.5);
 	double k = sqrt(R*R + r2*r2) / R;
@@ -541,27 +206,25 @@ inline static  void WarpCylindrical_CoorTranfer_Inve(double R,
 }
 // 圓柱投影 basic_ImgData
 void WarpCylindrical(basic_ImgData &dst, const basic_ImgData &src, 
-	double R ,int mx, int my, double edge)
+	double R ,int mx=0, int my=0, double edge=0.0)
 {
-	int w = src.width;
-	int h = src.height;
-	int moveH = (h*edge) + my;
-	unsigned int moveW = mx;
+	int srcW = src.width;
+	int srcH = src.height;
+	int moveH = (srcH*edge) + my;
+	int moveW = mx;
 
-	dst.raw_img.clear();
-	dst.raw_img.resize((w+moveW)*3 *h *(1+edge*2));
-	dst.width = w+moveW;
-	dst.height = h * (1+edge*2);
-	dst.bits = src.bits;
+	int dstW = srcW+moveW;
+	int dstH = srcH * (1+edge*2);
+	ImgData_resize(dst, dstW, dstH, src.bits);
 
 	// 圓柱投影
 #pragma omp parallel for
-	for (int j = 0; j < h; j++){
-		for (int i = 0; i < w; i++){
+	for (int j = 0; j < srcH; j++){
+		for (int i = 0; i < srcW; i++){
 			double x = i, y = j;
-			WarpCylindrical_CoorTranfer_Inve(R, w, h, x, y);
-			if (x >= 0 && y >= 0 && x < w - 1 && y < h - 1) {
-				unsigned char* p = &dst.raw_img[((j+moveH)*(w+moveW) + (i+moveW)) *3];
+			WarpCylindrical_CoorTranfer_Inve(R, srcW, srcH, x, y);
+			if (x >= 0 && y >= 0 && x < srcW - 1 && y < srcH - 1) {
+				unsigned char* p = &dst.raw_img[((j+moveH)*(srcW+moveW) + (i+moveW)) *3];
 				fast_Bilinear_rgb(p, src, y, x);
 			}
 		}
@@ -781,6 +444,9 @@ void mergeOverlap_noncut(const basic_ImgData &src1, const basic_ImgData &src2,
 		}
 	}
 }
+
+
+//==================================================================================
 // 混合兩張投影過(未裁減)的圓柱，過程會自動裁減輸出
 void WarpCyliMuitBlend(basic_ImgData &dst, 
 	const basic_ImgData &src1, const basic_ImgData &src2,
@@ -815,12 +481,10 @@ void WarpCyliMuitBlend(basic_ImgData &dst,
 
 
 
-	// 兩張圖疊起來大小
+	// 輸出圖像
 	int newH=corner[3]-corner[1]-abs(my);
 	int newW=corner[2]-corner[0]+mx;
-	t1.start();
 	ImgData_resize(dst, newW, newH, 24);// 1ms
-	t1.print("  ImgData_resize");
 	udst.out(dst); // 2ms
 }
 
@@ -836,11 +500,13 @@ void LapBlender(basic_ImgData &dst,
 {
 	Timer t;
 	basic_ImgData warp1, warp2;
-	WarpCylindrical(warp1, src1, ft, 0, 0, 0);
-	WarpCylindrical(warp2, src2, ft, 0, 0, 0);
 	t.start();
+	WarpCylindrical(warp1, src1, ft);
+	WarpCylindrical(warp2, src2, ft);
+	t.print("WarpCylindrical");
 
-
+	
+	t.start();
 	WarpCyliMuitBlend(dst, warp1, warp2, mx, my);
 	t.print("WarpCyliMuitBlend");
 }

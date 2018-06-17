@@ -96,9 +96,6 @@ __host__ void GaussianBlur(const cuImgData & uSrc, cuImgData & uDst, int matLen,
 // ª÷¦r¶ð²V©M
 void imgBlendHalf(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
 void imgBlendAlpha(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
-
-void blendLaplacianPyramids(vector<cuImgData>& LS, const vector<cuImgData>& LA, const vector<cuImgData>& LB);
-
 void mergeOverlap(const cuImgData & usrc1, const cuImgData & usrc2, const cuImgData & ublend, cuImgData & udst, vector<int> corner);
 
 
