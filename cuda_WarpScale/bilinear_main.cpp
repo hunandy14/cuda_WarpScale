@@ -16,7 +16,7 @@ using namespace std;
 #include "Timer.hpp"
 #include "LapBlend/LapBlend.hpp"
 
-#include <opencv2\opencv.hpp>
+#include <opencv2/opencv.hpp>
 
 using uch = unsigned char;
 
@@ -101,9 +101,9 @@ int main(){
 	cout << "\n\n金字塔混和\n" << endl;
 
 	
-	ImgData t1("img/warp1.bmp"), t2("img/_TestB.bmp"), out;
+	/*ImgData t1("img/warp1.bmp"), t2("img/_TestB.bmp"), out;
 	cuImgData ut1(t1), ut2(t2), uout;
-	uout.resize(t1);
+	uout.resize(t1);*/
 	
 	//WarpCylindrical(ut1, uout, 2252.97);
 	/*WarpCyliCorner(ut1, ucorner, 10, 20);

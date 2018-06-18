@@ -8,14 +8,15 @@ Final: 2018/04/12
 #include <vector>
 #include <algorithm>
 #include <cmath>
-#include <timer.hpp>
 using namespace std;
 
+#include "Timer.hpp"
 #include "LapBlend.hpp"
 #include "cubilinear.hpp"
 
-#define or ||
-#define and &&
+//#define or ||
+//#define and &&
+
 #define LAP_OCTVS 5
 
 //==================================================================================

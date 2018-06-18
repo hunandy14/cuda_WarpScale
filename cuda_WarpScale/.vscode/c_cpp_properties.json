@@ -9,11 +9,13 @@
                 "limitSymbolsToIncludedHeaders": true
             },
             "includePath": [
-                "${workspaceFolder}",
                 "/usr/local/cuda-9.0/include",
                 "${workspaceFolder}/OpenBMP",
                 "${workspaceFolder}/CudaMem",
-                "${workspaceFolder}/Timer"
+                "${workspaceFolder}/Timer",
+                "${workspaceFolder}/LapBlend",
+                "${workspaceFolder}/cubilinear",
+                "${workspaceFolder}"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

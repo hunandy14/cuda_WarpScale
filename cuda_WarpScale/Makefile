@@ -14,6 +14,8 @@ OPENCV := `pkg-config opencv --libs --cflags`
 CXXINC := -IOpenBMP
 CXXINC += -ICudaMem
 CXXINC += -ITimer
+CXXINC += -ILapBlend
+CXXINC += -Icubilinear
 
 # ================================================================
 all: bilinear_main.out
@@ -27,7 +29,7 @@ clear:
 	rm -f *.o *.out
 
 # ================================================================
-bilinear_main.out: bilinear_main.o bilinear.o OpenBMP.o
+bilinear_main.out: bilinear_main.o bilinear.o OpenBMP.o LapBlend.o
 	nvcc $(NVCCFLAGS) *.o -o bilinear_main.out $(OPENCV) $(CXXINC)
 
 bilinear_main.o: bilinear_main.cpp
@@ -36,3 +38,5 @@ bilinear.o: cubilinear/cubilinear.cu cubilinear/cubilinear.hpp
 	nvcc $(NVCCFLAGS) -c cubilinear/cubilinear.cu $(OPENCV) $(CXXINC)
 OpenBMP.o: OpenBMP/OpenBMP.cpp OpenBMP/OpenBMP.hpp
 	nvcc $(NVCCFLAGS) -c OpenBMP/OpenBMP.cpp $(OPENCV) $(CXXINC)
+LapBlend.o: LapBlend/LapBlend.cpp LapBlend/LapBlend.hpp
+	nvcc $(NVCCFLAGS) -c LapBlend/LapBlend.cpp $(OPENCV) $(CXXINC)
