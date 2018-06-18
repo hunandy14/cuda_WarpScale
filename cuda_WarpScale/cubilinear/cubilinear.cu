@@ -6,6 +6,7 @@ Final: 2018/01/08
 ***************************************************************************************/
 #include <iostream>
 #include <vector>
+#include <algorithm>
 #include <cmath>
 using namespace std;
 
@@ -529,6 +530,7 @@ void mergeOverlap_kernel(
 void mergeOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	const cuImgData& uBlend, cuImgData& uDst, vector<int> corner)
 {
+	CudaData<int> ucorner(corner.data(), corner.size());
 	
 	// 偏移量
 	int mx=corner[4];
@@ -540,8 +542,6 @@ void mergeOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	// 兩張圖的高度偏差值
 	int myA = my<0? 0:my;
 	int myB = my>0? 0:-my;
-
-	CudaData<int> ucorner(corner.data(), corner.size());
 
 	// 設置大小
 	int srcW = uSrc.width;
@@ -601,6 +601,9 @@ void getOverlap_kernel2(
 void getOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	cuImgData& ucut1, cuImgData& ucut2, vector<int> corner)
 {
+	CudaData<int> ucorner(corner.data(), corner.size());
+	//cout << ucorner[0] << endl;
+
 	// 偏移量
 	const int mx=corner[4];
 	const int my=corner[5];
@@ -611,7 +614,6 @@ void getOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	const int myA = my<0? 0:my;
 	const int myB = my>0? 0:-my;
 
-	CudaData<int> ucorner(corner.data(), corner.size());
 	// 設置大小
 	ucut1.resize(lapW, lapH, uSrc.bits);
 	ucut2.resize(lapW, lapH, uSrc2.bits);
@@ -694,3 +696,70 @@ void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst,
 
 
 //======================================================================================
+__global__
+void WarpCyliCorner_kernel(
+	const uch* src, int srcW, int srcH, 
+	int* corner, int mx, int my)
+{
+	int i = blockIdx.x * blockDim.x + threadIdx.x;
+	int j = blockIdx.y * blockDim.y + threadIdx.y;
+	if(j < 1 && i == 0) {
+		// 設置偏移位置
+		corner[4]=mx, corner[5]=my;
+		// 左上角角點
+		for (int i = 0; i < srcW; i++) {
+			int pix = (int)src[(srcH/2*srcW +i)*3 +0];
+			if (i < (srcW>>1) && pix != 0) {
+				corner[0]=i;
+				//cout << "corner=" << corner[0] << endl;
+				i = srcW>>1;
+			} else if (i > (srcW>>1) && pix == 0) {
+				corner[2] = i-1;
+				//cout << "corner=" << corner[2] << endl;
+				break;
+			}
+		}
+	}
+	if(j < 1 && i == 1) {
+		// 右上角角點
+		for (int j = 0; j < srcH; j++) {
+			int pix = (int)src[(j*srcW +corner[0])*3 +0];
+			if (j < (srcH>>1) && pix != 0) {
+				corner[1] = j;
+				//cout << "corner=" << corner[2] << endl;
+				j = srcH>>1;
+			} else if (j > (srcH>>1) && pix == 0) {
+				corner[3] = j-1;
+				//cout << "corner=" << corner[3] << endl;
+				break;
+			}
+		}
+	}					
+}
+__host__
+void WarpCyliCorner(const cuImgData & uSrc, CudaData<int>& ucorner, int mx, int my) {
+	int srcW = uSrc.width;
+	int srcH = uSrc.height;
+
+	// 設置大小
+	int newW = 2;
+	int newH = 1;
+	// 重設大小
+	if(ucorner.len<6) {
+		ucorner.~CudaData();
+		ucorner.malloc(6);
+	}
+	// 設置執行緒
+	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
+	dim3 grid(ceil(newW / BLOCK_DIM_X)+1, ceil(newH / BLOCK_DIM_Y)+1);
+
+	// 執行 kernel
+	WarpCyliCorner_kernel <<< grid, block >>> (
+		uSrc, uSrc.width, uSrc.height, 
+		ucorner, mx, my
+	);
+}
+
+
+
+

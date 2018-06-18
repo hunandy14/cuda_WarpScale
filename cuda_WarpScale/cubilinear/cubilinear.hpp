@@ -100,6 +100,7 @@ void mergeOverlap(const cuImgData & usrc1, const cuImgData & usrc2, const cuImgD
 void getOverlap(const cuImgData & uSrc, const cuImgData & uSrc2, cuImgData & ucut1, cuImgData & ucut2, vector<int> corner);
 // ¶ê¬W§ë¼v
 void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst, double R, int mx=0, int my=0, double edge=0.0);
+void WarpCyliCorner(const cuImgData & uSrc, CudaData<int>& ucorner, int mx, int my);
 
 
 

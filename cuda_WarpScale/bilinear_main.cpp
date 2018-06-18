@@ -94,19 +94,27 @@ int main(){
 	*/
 
 
-
+	CudaData<int> ucorner(6);
+	vector<int> corner(6);
+	
 	/* 金字塔混和 */
 	cout << "\n\n金字塔混和\n" << endl;
 
 	
-	/*ImgData t1("img/_TestA.bmp"), t2("img/_TestB.bmp"), out;
+	ImgData t1("img/warp1.bmp"), t2("img/_TestB.bmp"), out;
 	cuImgData ut1(t1), ut2(t2), uout;
 	uout.resize(t1);
 	
-	WarpCylindrical(ut1, uout, 2252.97);
+	//WarpCylindrical(ut1, uout, 2252.97);
+	/*WarpCyliCorner(ut1, ucorner, 10, 20);
+	ucorner.memcpyOut(corner.data(), corner.size());
 	
-	uout.out(out);
-	out.bmp("__bugTest0.bmp");*/
+	for(size_t i = 0; i < 6; i++) {
+		cout << corner[i] << ", ";
+	} cout << endl;*/
+
+	//uout.out(out);
+	//out.bmp("__bugTest0.bmp");
 
 	LapBlend_Tester();
 

@@ -245,17 +245,17 @@ void WarpCyliMuitBlend(cuImgData &udst,
 	// 取出重疊區
 	t1.start();
 	getOverlap(usrc1, usrc2, ucut1, ucut2, corner); // 5ms
-	t1.print("  getOverlap");
+	t1.print("   getOverlap");
 
 	// 混合重疊區
 	t1.start();
 	blendLaplacianImg(ublend, ucut1, ucut2); // 53ms -> 21ms->19ms
-	t1.print("  blendLaplacianImg");
+	t1.print("   blendLaplacianImg");
 	
 	// 合併三張圖片
 	t1.start();
 	mergeOverlap(usrc1, usrc2, ublend, udst, corner); // 5ms -> 2ms
-	t1.print("  mergeOverlap");
+	t1.print("   mergeOverlap");
 }
 
 
@@ -270,28 +270,32 @@ void LapBlender(basic_ImgData &dst,
 	Timer t;
 	t.priSta=1;
 	cuImgData uwarp1, uwarp2;
+	cuImgData usrc1(src1), usrc2(src2);
+	cuImgData udst;
 
 	t.start();
-	cuImgData usrc1(src1), usrc2(src2);
 	WarpCylindrical(usrc1, uwarp1, ft);
 	WarpCylindrical(usrc2, uwarp2, ft);
 	t.print("  WarpCylindrical"); // 20ms->2+2ms
 
 	// 檢測圓柱圖角點(minX, minY, maxX, maxY, mx, my)
-	t.start();
 	vector<int> corner{0, 0, 0, 0, mx, my};
-	basic_ImgData warp1;
-	uwarp1.out(warp1);
-	WarpCyliCorner(warp1, corner); // 0ms
-	t.print("  WarpCyliCorner"); // 8ms
+	CudaData<int> ucorner(6);
+	t.start();
+	// todo 這裡不知道怎麼解 gpu跟cpu運算都是0ms
+	// 卡在warpData在gpu上 就算算完4點再拿出來也超費時
+	WarpCyliCorner(uwarp1, ucorner, mx, my); 
+	ucorner.memcpyOut(corner.data(), corner.size());
+	//basic_ImgData warp1; uwarp1.out(warp1);
+	//WarpCyliCorner(warp1, corner); // 0ms
+	t.print("  WarpCyliCorner"); // 8ms->6ms
 
 	// 混合圖像
 	t.start();
-	cuImgData udst;
 	WarpCyliMuitBlend(udst, uwarp1, uwarp2, corner); // 31ms
 	t.print("  WarpCyliMuitBlend");
 
-
+	// 輸出影像
 	t.start();
 	udst.out(dst);
 	t.print("  ##DATA OUT");
