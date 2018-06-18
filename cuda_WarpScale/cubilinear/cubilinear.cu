@@ -363,7 +363,6 @@ void imgGauX_kernel( const uch* src, int srcW, int srcH,
 	if( j>=0 && i >=0 &&
 		j < srcH && i < srcW) { // 會多跑一點點要擋掉
 		int srcIdx = (j*srcW + i) * 3;
-		int dstIdx = (j*srcW + i) * 3;
 
 		double sumR = 0;
 		double sumG = 0;
@@ -539,13 +538,8 @@ void mergeOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	int newH=corner[3]-corner[1]-abs(my);
 	int newW=corner[2]-corner[0]+mx;
 	uDst.resize(newW, newH, uSrc.bits);
-	// 兩張圖的高度偏差值
-	int myA = my<0? 0:my;
-	int myB = my>0? 0:-my;
 
 	// 設置大小
-	int srcW = uSrc.width;
-	int srcH = uSrc.height;
 	uDst.resize(newW, newH, uSrc.bits);
 
 	// 設置執行緒
@@ -610,9 +604,6 @@ void getOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	// 重疊區大小
 	const int lapH=corner[3]-corner[1]-abs(my);
 	const int lapW=corner[2]-corner[0]-mx;
-	// 兩張圖的高度偏差值
-	const int myA = my<0? 0:my;
-	const int myB = my>0? 0:-my;
 
 	// 設置大小
 	ucut1.resize(lapW, lapH, uSrc.bits);
@@ -673,11 +664,7 @@ void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst,
 {
 	int srcW = uSrc.width;
 	int srcH = uSrc.height;
-
-	int moveH = (srcH*edge) + my;
-	int moveW = mx;
-
-	int dstW = srcW+moveW;
+	int dstW = srcW+mx;
 	int dstH = srcH * (1+edge*2);
 
 	// 設置大小
@@ -738,9 +725,6 @@ void WarpCyliCorner_kernel(
 }
 __host__
 void WarpCyliCorner(const cuImgData & uSrc, CudaData<int>& ucorner, int mx, int my) {
-	int srcW = uSrc.width;
-	int srcH = uSrc.height;
-
 	// 設置大小
 	int newW = 2;
 	int newH = 1;
