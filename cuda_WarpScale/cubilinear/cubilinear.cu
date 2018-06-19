@@ -526,6 +526,7 @@ void mergeOverlap_kernel(
 		}
 	}					
 }
+__host__
 void mergeOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	const cuImgData& uBlend, cuImgData& uDst, vector<int> corner)
 {
@@ -592,6 +593,7 @@ void getOverlap_kernel2(
 		}
 	}					
 }
+__host__
 void getOverlap(const cuImgData& uSrc, const cuImgData& uSrc2,
 	cuImgData& ucut1, cuImgData& ucut2, vector<int> corner)
 {
@@ -683,6 +685,7 @@ void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst,
 
 
 //======================================================================================
+// 圓柱投影邊緣角點
 __global__
 void WarpCyliCorner_kernel(
 	const uch* src, int srcW, int srcH, 
@@ -745,5 +748,4 @@ void WarpCyliCorner(const cuImgData & uSrc, CudaData<int>& ucorner, int mx, int 
 }
 
 
-
-
+//======================================================================================

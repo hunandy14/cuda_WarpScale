@@ -15,18 +15,12 @@
     </Filter>
   </ItemGroup>
   <ItemGroup>
-    <ClCompile Include="OpenBMP\OpenBMP.cpp">
-      <Filter>OpenBMP</Filter>
-    </ClCompile>
     <ClCompile Include="bilinear_main.cpp" />
     <ClCompile Include="LapBlend\LapBlend.cpp">
       <Filter>LapBlend</Filter>
     </ClCompile>
   </ItemGroup>
   <ItemGroup>
-    <ClInclude Include="OpenBMP\OpenBMP.hpp">
-      <Filter>OpenBMP</Filter>
-    </ClInclude>
     <ClInclude Include="CudaMem\CudaMem.cuh">
       <Filter>CudaMem</Filter>
     </ClInclude>
@@ -35,6 +29,9 @@
     </ClInclude>
     <ClInclude Include="LapBlend\LapBlend.hpp">
       <Filter>LapBlend</Filter>
+    </ClInclude>
+    <ClInclude Include="OpenBMP\OpenBMP.hpp">
+      <Filter>OpenBMP</Filter>
     </ClInclude>
   </ItemGroup>
   <ItemGroup>

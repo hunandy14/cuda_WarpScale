@@ -91,16 +91,14 @@ __host__ void imgAdd(cuImgData & uSrc, const cuImgData & uDst);
 // 高斯模糊
 __host__ void GaussianBlur(const cuImgData & uSrc, cuImgData & uDst, int matLen, double sigma=0);
 
-
-
 // 金字塔混和
-void imgBlendHalf(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
-void imgBlendAlpha(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
-void mergeOverlap(const cuImgData & usrc1, const cuImgData & usrc2, const cuImgData & ublend, cuImgData & udst, vector<int> corner);
-void getOverlap(const cuImgData & uSrc, const cuImgData & uSrc2, cuImgData & ucut1, cuImgData & ucut2, vector<int> corner);
+__host__ void imgBlendHalf(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
+__host__ void imgBlendAlpha(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
+__host__ void mergeOverlap(const cuImgData & usrc1, const cuImgData & usrc2, const cuImgData & ublend, cuImgData & udst, vector<int> corner);
+__host__ void getOverlap(const cuImgData & uSrc, const cuImgData & uSrc2, cuImgData & ucut1, cuImgData & ucut2, vector<int> corner);
 // 圓柱投影
-void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst, double R, int mx=0, int my=0, double edge=0.0);
-void WarpCyliCorner(const cuImgData & uSrc, CudaData<int>& ucorner, int mx, int my);
+__host__ void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst, double R, int mx=0, int my=0, double edge=0.0);
+__host__ void WarpCyliCorner(const cuImgData & uSrc, CudaData<int>& ucorner, int mx, int my);
 
 
 

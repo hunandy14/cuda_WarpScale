@@ -19,7 +19,6 @@
   <ItemGroup>
     <ClCompile Include="bilinear_main.cpp" />
     <ClCompile Include="LapBlend\LapBlend.cpp" />
-    <ClCompile Include="OpenBMP\OpenBMP.cpp" />
   </ItemGroup>
   <ItemGroup>
     <CudaCompile Include="cubilinear\cubilinear.cu" />

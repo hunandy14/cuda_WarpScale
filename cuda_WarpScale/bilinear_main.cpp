@@ -11,12 +11,11 @@ Final: 2018/01/08
 #include <string>
 using namespace std;
 
-#include "cubilinear/cubilinear.hpp"
 #include "OpenBMP.hpp"
 #include "Timer.hpp"
-#include "LapBlend/LapBlend.hpp"
 
-#include <opencv2/opencv.hpp>
+#include "cubilinear/cubilinear.hpp"
+#include "LapBlend/LapBlend.hpp"
 
 using uch = unsigned char;
 
