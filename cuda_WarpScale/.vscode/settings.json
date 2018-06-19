@@ -1,7 +1,13 @@
 {
     "files.associations": {
         "istream": "cpp",
-        "*.cuh": "cpp"
+        "*.cuh": "cpp",
+        "array": "cpp",
+        "deque": "cpp",
+        "unordered_map": "cpp",
+        "vector": "cpp",
+        "initializer_list": "cpp",
+        "utility": "cpp"
     },
     // 控制字型家族。
     "editor.fontFamily": "'Hack', 'Droid Sans Mono', 'monospace', monospace, 'Droid Sans Fallback'",

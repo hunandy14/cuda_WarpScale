@@ -356,7 +356,7 @@ public: // 大小方法
 			return 1;
 		} return 0;
 	}
-	const size_t size() const {
+	std::size_t size() const {
 		return this->raw_img.size();
 	}
 	void resize(uint32_t width, uint32_t height, uint16_t bits) {
