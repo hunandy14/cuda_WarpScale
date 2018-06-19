@@ -22,12 +22,13 @@ using uch = unsigned char;
 class cuImgData:public CudaData<uch>{
 public:
 	cuImgData() = default;
-	cuImgData(const basic_ImgData& src) :
+	~cuImgData() = default;
+
+	explicit cuImgData(const basic_ImgData& src) :
 		CudaData(src.raw_img.data(), src.raw_img.size()),
 		width(src.width), height(src.height), bits(src.bits) {}
 	cuImgData(uint32_t w, uint32_t h, uint16_t bits): 
 		CudaData(w*h * bits>>3), width(w), height(h), bits(bits){}
-	~cuImgData() = default;
 public:
 	void in(const basic_ImgData& dst) {
 		int size = dst.raw_img.size();
