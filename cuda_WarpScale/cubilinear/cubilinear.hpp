@@ -22,13 +22,42 @@ public:
 		width(src.width), height(src.height), bits(src.bits) {}
 	cuImgData(uint32_t w, uint32_t h, uint16_t bits): 
 		CudaData(w*h * bits>>3), width(w), height(h), bits(bits) {}
-
 public:
-	// copy assignment
-	cuImgData& operator=(const cuImgData& other) {
-		if (this != &other) { // self-assignment check expected
-			resize(other);
-			//std::copy(other.mArray, other.mArray + other.size, mArray);
+	cuImgData(const cuImgData& rhs):
+		CudaData(rhs), 
+		width  (rhs.width ),
+		height (rhs.height),
+		bits(rhs.bits)
+	{
+		cout << "cuImgData::ctor" << endl;
+	}
+	cuImgData(cuImgData&& rhs) noexcept:
+		CudaData(std::move(rhs)), 
+		width  (std::exchange(rhs.width , 0)),
+		height (std::exchange(rhs.height, 0)),
+		bits   (std::exchange(rhs.bits  , 0))
+	{
+		cout << "cuImgData::cmove" << endl;
+	}
+	cuImgData& operator=(const cuImgData& rhs) {
+		cout << "cuImgData::copy" << endl;
+		if (this != &rhs) {
+			resize(rhs);
+			CudaData::operator=(rhs);
+			width  = rhs.width;
+			height = rhs.height;
+			bits   = rhs.bits;
+		}
+		return *this;
+	}
+	cuImgData& operator=(cuImgData&& rhs) noexcept {
+		cout << "cuImgData::move" << endl;
+		if(this != &rhs) {
+			this->~cuImgData();
+			CudaData::operator=(std::move(rhs));
+			width  = std::exchange(rhs.width , 0);
+			height = std::exchange(rhs.height, 0);
+			bits   = std::exchange(rhs.bits  , 0);
 		}
 		return *this;
 	}
@@ -75,17 +104,22 @@ public:
 	int sizePix() const {
 		return width*height;
 	}
-	void info_print() const {
+	void info_print(bool detail=0) const {
 		std::cout << ">>IMG basic info:" << "\n";
 		std::cout << "  - img size  = " << this->size() << "\n";
 		std::cout << "  - img width = " << this->width  << "\n";
 		std::cout << "  - img heigh = " << this->height << "\n";
-		std::cout << "  - img bits  = " << this->bits   << "\n\n";
+		std::cout << "  - img bits  = " << this->bits   << "\n";
+		if(detail) {
+			std::cout << "  -  gpu data address  = "  << (int)gpuData << "\n";
+			std::cout << "  -  gpu data capacity  = " << len     << "\n";
+		}
+		std::cout << "\n";
 	}
 public:
-	uint32_t width = 0;
+	uint32_t width  = 0;
 	uint32_t height = 0;
-	uint16_t bits = 0;
+	uint16_t bits   = 0;
 };
 
 // ½Æ»s¹Ï¤ù

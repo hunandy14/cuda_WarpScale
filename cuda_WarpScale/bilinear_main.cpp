@@ -87,9 +87,10 @@ void cuda_info() {
 }
 
 
-void printGPU(CudaData<int>& u1) {
+void printGPU(CudaData<int>& u1, string name="") {
 	vector<int> out(u1.size());
 	u1.memcpyOut(out.data(), out.size());
+	cout << name << "[" << u1 << "]::";
 	for(size_t i = 0; i < out.size(); i++) {
 		cout << out[i] << ", ";
 	} cout << endl;
@@ -100,7 +101,7 @@ void test() {
 
 	cout << "====================== start ======================" << endl;
 
-	CudaData<int> u1(1), u2;
+	/*CudaData<int> u1(1), u2;
 	u1.resize(5);
 	u1.memcpyIn(arr.data(), arr.size());
 	
@@ -110,15 +111,49 @@ void test() {
 	cout << u2 << ", " << u1 << ", " << u3 << endl;
 
 
+	cout << "=== move ===" << endl;
+	CudaData<int> uu1;
+	uu1 = std::move(u1);
+
+
+	CudaData<int> uu2(std::move(u2));
+
 	// 驗證資料
-	printGPU(u1);
-	printGPU(u2);
-	printGPU(u3);
+	printGPU(u1, "u1 ");
+	printGPU(u2, "u2 ");
+	printGPU(u3, "u3 ");
+
+	printGPU(uu1, "uu1");
+	printGPU(uu2, "uu2");*/
 
 
 	/*CudaData<int> b;
 	b = uarr;*/
 
+	ImgData g1("img/test.bmp");
+	cuImgData ug1(g1);
+	ug1.info_print(1);
+
+	/*cout << "======= ug2 =======" << endl;
+	cuImgData ug2;
+	ug2=std::move(ug1);
+	ug1.info_print(1);
+	ug2.info_print(1);*/
+
+	/*cout << "======= ug4 =======" << endl;
+	cuImgData ug4 = std::move(ug1);
+	ug1.info_print(1);
+	ug4.info_print(1);*/
+
+
+	/*cout << "======= ug3 =======" << endl;
+	cuImgData ug3;
+	ug3=ug1;
+	ug3.info_print(1);*/
+
+	cout << "======= ug5 =======" << endl;
+	cuImgData ug5=ug1;
+	ug5.info_print(1);
 
 
 	/*ImgData out;

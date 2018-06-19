@@ -22,19 +22,35 @@ public:
 	}
 	virtual ~CudaData(){
 		free();
-		len = 0;
 	}
-
+public: // rule of five
 	CudaData(const CudaData& rhs) {
+		cout << "CudaData::ctor" << endl;
 		malloc(rhs.len);
 		cudaMemcpy(this->gpuData, rhs.gpuData, 
 				rhs.len*sizeof(T), cudaMemcpyDeviceToDevice);
 	}
+	CudaData(CudaData&& rhs) noexcept:
+		gpuData(std::exchange(rhs.gpuData, nullptr)), 
+		len(std::exchange(rhs.len, 0))
+	{
+		cout << "CudaData::cmove" << endl;
+	}
 	CudaData& operator=(const CudaData& rhs) {
-		if (this != &rhs) { // self-assignment check expected
+		cout << "CudaData::copy" << endl;
+		if (this != &rhs) {
 			resize(rhs.len);
 			cudaMemcpy(this->gpuData, rhs.gpuData, 
 				rhs.len*sizeof(T), cudaMemcpyDeviceToDevice);
+		}
+		return *this;
+	}
+	CudaData& operator=(CudaData&& rhs) noexcept {
+		cout << "CudaData::move" << endl;
+		if(this != &rhs) {
+			free();
+			gpuData = std::exchange(rhs.gpuData, nullptr);
+			len = std::exchange(rhs.len, 0);
 		}
 		return *this;
 	}
@@ -63,6 +79,10 @@ public: // 記憶體函式轉發
 	void memset(int value, size_t size) {
 		if(size>len) {throw out_of_range("memset::input size > gpudata size.");}
 		cudaMemset(gpuData, value, size*sizeof(T));
+	}
+	void swap(CudaData& other) {
+		std::swap(this->gpuData, other.gpuData);
+		std::swap(this->len, other.len);
 	}
 public:
 	void resize(size_t size) {
