@@ -17,21 +17,51 @@ using namespace std;
 #include "cubilinear/cubilinear.hpp"
 #include "LapBlend/LapBlend.hpp"
 
-using uch = unsigned char;
-
-vector<float> tofloat(const uch* img, size_t size) {
+vector<float> tofloat(const unsigned char* img, size_t size) {
 	vector<float> temp(size);
 	for(size_t i = 0; i < size; i++) {
 		temp[i] = img[i];
 	} return temp;
 }
-vector<uch> touch(const float* img, size_t size) {
-	vector<uch> temp(size);
+vector<unsigned char> touch(const float* img, size_t size) {
+	vector<unsigned char> temp(size);
 	for(size_t i = 0; i < size; i++) {
 		temp[i] = img[i];
 	} return temp;
 }
-void imgSub(basic_ImgData &src, const basic_ImgData &dst);
+void bilinear_test() {
+	Timer T;
+	double ratio = 1;
+
+	// 讀取
+	ImgData src("img/kanna.bmp"); ratio = 2;
+	//ImgData src("img/737400.bmp"); ratio = 1;
+	ImgData dst;
+	dst.resize(src.width*ratio, src.height*ratio, src.bits);
+
+	// 要求GPU空間
+	cuImgData uSrc(src);
+	cuImgData uDst;
+	uDst.resize(src.width*ratio, src.height*ratio, src.bits);
+
+	// GPU速度
+	T.start();
+	WarpScale_rgb(uSrc, uDst, ratio);
+	T.print(" cuWarpScale_rgb");
+
+	// GPU 輸出
+	T.start();
+	uDst.out(dst);
+	T.print(" gpu out data");
+	//dst.bmp("cutestImg.bmp");
+
+	// CPU速度
+	T.start();
+	WarpScale_rgb(src, dst, ratio);
+	T.print(" WarpScale_rgb");
+	//dst.bmp("testImg.bmp");
+}
+
 void cuda_info() {
 	cudaDeviceProp prop;  
 
@@ -55,68 +85,69 @@ void cuda_info() {
 			prop.maxGridSize[1], prop.maxGridSize[2]);
 	} printf("---------------------------------------------\n");
 }
+
+
+void printGPU(CudaData<int>& u1) {
+	vector<int> out(u1.size());
+	u1.memcpyOut(out.data(), out.size());
+	for(size_t i = 0; i < out.size(); i++) {
+		cout << out[i] << ", ";
+	} cout << endl;
+}
+void test() {
+	cout << "cuda test." << endl;
+	vector<int> arr{1, 2, 3, 4, 5};
+
+	cout << "====================== start ======================" << endl;
+
+	CudaData<int> u1(1), u2;
+	u1.resize(5);
+	u1.memcpyIn(arr.data(), arr.size());
+	
+	u2=u1;
+
+	CudaData<int> u3=u1;
+	cout << u2 << ", " << u1 << ", " << u3 << endl;
+
+
+	// 驗證資料
+	printGPU(u1);
+	printGPU(u2);
+	printGPU(u3);
+
+
+	/*CudaData<int> b;
+	b = uarr;*/
+
+
+
+	/*ImgData out;
+	cuImgData uout;
+	uout.info_print();
+
+	ImgData t1("img/test.bmp");
+	cuImgData ut1(t1);
+	ut1.info_print();
+
+	ut1.out(out);
+
+	out.info_print();
+	out.bmp("__bugTest0.bmp");*/
+	cout << "====================== end ======================" << endl;
+
+}
 int main(){
 	//查看显卡配置
-	cuda_info();
-
-	Timer T;
-	double ratio = 1;
-
-	/*
-	// 讀取
-	ImgData src("img/kanna.bmp"); ratio = 2;
-	//ImgData src("img/737400.bmp"); ratio = 1;
-	ImgData dst;
-	dst.resize(src.width*ratio, src.height*ratio, src.bits);
-
-	// 要求GPU空間
-	cuImgData uSrc(src);
-	cuImgData uDst;
-	uDst.resize(src.width*ratio, src.height*ratio, src.bits);
-
-	// GPU速度
-	T.start();
-	WarpScale_rgb(uSrc, uDst, ratio);
-	T.print(" cuWarpScale_rgb");
+	//cuda_info();
 	
-	// GPU 輸出
-	T.start();
-	uDst.out(dst);
-	T.print(" gpu out data");
-	//dst.bmp("cutestImg.bmp");
+	// 縮放測試
+	//bilinear_test();
 
-	// CPU速度
-	T.start();
-	WarpScale_rgb(src, dst, ratio);
-	T.print(" WarpScale_rgb");
-	//dst.bmp("testImg.bmp");
-	*/
-
-
-	CudaData<int> ucorner(6);
-	vector<int> corner(6);
+	// 測試代碼
+	test();
 	
-	/* 金字塔混和 */
-	cout << "\n\n金字塔混和\n" << endl;
-
-	
-	/*ImgData t1("img/warp1.bmp"), t2("img/_TestB.bmp"), out;
-	cuImgData ut1(t1), ut2(t2), uout;
-	uout.resize(t1);*/
-	
-	//WarpCylindrical(ut1, uout, 2252.97);
-	/*WarpCyliCorner(ut1, ucorner, 10, 20);
-	ucorner.memcpyOut(corner.data(), corner.size());
-	
-	for(size_t i = 0; i < 6; i++) {
-		cout << corner[i] << ", ";
-	} cout << endl;*/
-
-	//uout.out(out);
-	//out.bmp("__bugTest0.bmp");
-
-	LapBlend_Tester();
-
+	// 金字塔混和
+	//LapBlend_Tester();
 
 	return 0;
 }

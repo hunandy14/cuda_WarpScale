@@ -8,19 +8,11 @@ Final: 2018/01/09
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
-template <class T>
-class CudaData_type {
-
-};
-
-
-
-
 // Cuda 記憶體自動管理程序
 template <class T>
 class CudaData {
 public:
-	CudaData(){}
+	CudaData() = default;
 	CudaData(size_t size){
 		malloc(size);
 	}
@@ -29,32 +21,57 @@ public:
 		memcpyIn(dataIn, size);
 	}
 	virtual ~CudaData(){
-		if(gpuData!=nullptr) {
+		free();
+		len = 0;
+	}
+
+	CudaData(const CudaData& rhs) {
+		malloc(rhs.len);
+		cudaMemcpy(this->gpuData, rhs.gpuData, 
+				rhs.len*sizeof(T), cudaMemcpyDeviceToDevice);
+	}
+	CudaData& operator=(const CudaData& rhs) {
+		if (this != &rhs) { // self-assignment check expected
+			resize(rhs.len);
+			cudaMemcpy(this->gpuData, rhs.gpuData, 
+				rhs.len*sizeof(T), cudaMemcpyDeviceToDevice);
+		}
+		return *this;
+	}
+public: // 記憶體函式轉發
+	void malloc(size_t size) {
+		cout << "CudaData malloc" << endl;
+		if(gpuData != nullptr) {throw runtime_error("malloc::gpudata is not empty.");}
+		cudaMalloc((void**)&gpuData, size*sizeof(T));
+		len = size;
+	}
+	void free() {
+		if(gpuData != nullptr) {
 			cudaFree(gpuData);
 			gpuData = nullptr;
 			len = 0;
 		}
 	}
-public:
-	void malloc(size_t size) {
-		this->~CudaData();
-		len = size;
-		cudaMalloc((void**)&gpuData, size*sizeof(T));
-	}
 	void memcpyIn(const T* dataIn ,size_t size) {
-		if(size > len) {throw out_of_range("memcpyIn input size > curr size.");}
+		if(size > len) {throw out_of_range("memcpyIn::input size > gpudata size.");}
 		cudaMemcpy(gpuData, dataIn, size*sizeof(T), cudaMemcpyHostToDevice);
 	}
 	void memcpyOut(T* dst ,size_t size) const {
+		if(size > len) {throw out_of_range("memcpyOut::ouput size > gpudata size.");}
 		cudaMemcpy(dst, gpuData, size*sizeof(T), cudaMemcpyDeviceToHost);
 	}
 	void memset(int value, size_t size) {
-		if(size>len) {
-			throw out_of_range("memset input size > curr size.");
-		}
+		if(size>len) {throw out_of_range("memset::input size > gpudata size.");}
 		cudaMemset(gpuData, value, size*sizeof(T));
 	}
-	size_t size() {
+public:
+	void resize(size_t size) {
+		if(size > len) {
+			free();
+			malloc(size);
+		} len = size;
+	}
+	size_t size() const {
 		return this->len;
 	}
 public:
@@ -70,8 +87,7 @@ public:
 };
 
 // 預啟動cuda核心
-static CudaData<int> __CudaDataInit__(0);
-
+static CudaData<int> __CudaGPUCoreInit__(1);
 
 
 // CudaArr 記憶體自動管理程序
