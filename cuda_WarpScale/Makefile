@@ -6,7 +6,7 @@
 # *****************************************************************/
 NVCCFLAGS :=
 NVCCFLAGS += -O3
-NVCCFLAGS += -std=c++11
+NVCCFLAGS += -std=c++14
 NVCCFLAGS += -Xcompiler -fopenmp
 
 OPENCV := `pkg-config opencv --libs --cflags`

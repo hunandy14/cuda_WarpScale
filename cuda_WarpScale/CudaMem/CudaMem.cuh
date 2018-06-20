@@ -7,6 +7,7 @@ Final: 2018/01/09
 #pragma once
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
+#include <utility>
 
 // Cuda 記憶體自動管理程序
 template <class T>

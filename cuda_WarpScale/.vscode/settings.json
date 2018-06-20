@@ -7,7 +7,8 @@
         "unordered_map": "cpp",
         "vector": "cpp",
         "initializer_list": "cpp",
-        "utility": "cpp"
+        "utility": "cpp",
+        "ostream": "cpp"
     },
     // 控制字型家族。
     "editor.fontFamily": "'Hack', 'Droid Sans Mono', 'monospace', monospace, 'Droid Sans Fallback'",

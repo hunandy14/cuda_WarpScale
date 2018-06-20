@@ -5,6 +5,7 @@ By   : CharlotteHonG
 Final: 2018/01/08
 *****************************************************************/
 #pragma once
+#include <utility>
 #include "cuda_runtime.h"
 #include "device_launch_parameters.h"
 
@@ -111,7 +112,7 @@ public:
 		std::cout << "  - img heigh = " << this->height << "\n";
 		std::cout << "  - img bits  = " << this->bits   << "\n";
 		if(detail) {
-			std::cout << "  -  gpu data address  = "  << (int)gpuData << "\n";
+			std::cout << "  -  gpu data address  = "  << (int)*gpuData << "\n";
 			std::cout << "  -  gpu data capacity  = " << len     << "\n";
 		}
 		std::cout << "\n";

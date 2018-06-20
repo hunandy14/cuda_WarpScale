@@ -123,7 +123,9 @@ void reLaplacianPyramids(cuLapPyr &upyr, cuImgData &udst, int octvs=LAP_OCTVS) {
 		cuImgData& expend = udst;
 		WarpScale_rgb(upyr[i], expend, 2.0);
 		imgAdd(upyr[i-1], expend);
-	} udst = std::move(upyr[0]);
+	} 
+	cout << "===TestPoint===" << endl;
+	udst = std::move(upyr[0]);
 }
 // 混合圖片
 void blendLaplacianImg(cuImgData& udst, const cuImgData& usrc1, const cuImgData& usrc2) {
@@ -211,6 +213,7 @@ void WarpCyliMuitBlend(cuImgData &udst,
 	// 混合重疊區
 	t1.start();
 	blendLaplacianImg(ublend, ucut1, ucut2); // 53ms -> 21ms->19ms
+	cout << "=======" << endl;
 	t1.print("   blendLaplacianImg");
 	
 	// 合併三張圖片
@@ -292,7 +295,7 @@ void LapBlend_Tester() {
 	// 輸出圖片
 	ImgData_write(dst, "_WarpCyliMuitBlend.bmp");
 
-	LapBlend_Tester2();
+	//LapBlend_Tester2();
 }
 
 //==================================================================================
