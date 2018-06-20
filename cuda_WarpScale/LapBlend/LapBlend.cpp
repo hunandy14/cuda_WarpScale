@@ -86,8 +86,7 @@ inline static void fast_NearestNeighbor_rgb(unsigned char* p,
 using cuLapPyr = vector<cuImgData>;
 void buildLaplacianPyramids(const cuImgData &usrc, cuLapPyr &upyr, int octvs=LAP_OCTVS) {
 	upyr.resize(octvs);
-	//upyr[0] = std::move(usrc);// todo 警告 這裡的移動語意還沒做(有做防double delete)
-	imgCopy(usrc, upyr[0]);
+	upyr[0] = usrc; // 原圖之後還要用不能用move
 
 	cuImgData utemp(usrc.width, usrc.height, usrc.bits);
 	cuImgData& uExpend=utemp;
@@ -105,12 +104,10 @@ void buildLaplacianPyramids(const cuImgData &usrc, cuLapPyr &upyr, int octvs=LAP
 // 混合拉普拉斯金字塔
 void blendLaplacianPyramids(cuLapPyr& LS, const cuLapPyr& LA, const cuLapPyr& LB) {
 	LS.resize(LA.size());
-
 	// 混合圖片
 	for(int idx = 0; idx < LS.size(); idx++) {
 		// 初始化
 		cuImgData& dst = LS[idx];
-		dst.resize(LA[idx].width, LA[idx].height, LA[idx].bits);
 		// 開始混合各層
 		if(idx == LS.size()-1) {
 			imgBlendAlpha(LA[idx], LB[idx], dst);
@@ -122,18 +119,11 @@ void blendLaplacianPyramids(cuLapPyr& LS, const cuLapPyr& LA, const cuLapPyr& LB
 // 解拉普拉斯金字塔
 void reLaplacianPyramids(cuLapPyr &upyr, cuImgData &udst, int octvs=LAP_OCTVS) {
 	Timer t1;
-	int newH = (int)(upyr[0].height);
-	int newW = (int)(upyr[0].width);
-	
 	for(int i = octvs-1; i >= 1; i--) {
-		cuImgData expend;
+		cuImgData& expend = udst;
 		WarpScale_rgb(upyr[i], expend, 2.0);
 		imgAdd(upyr[i-1], expend);
-	}
-
-	udst.resize(newW, newH, upyr[0].bits);
-	//udst = std::move(upyr[0]); // todo 警告 這裡的 move 還沒做
-	imgCopy(upyr[0], udst);
+	} udst = std::move(upyr[0]);
 }
 // 混合圖片
 void blendLaplacianImg(cuImgData& udst, const cuImgData& usrc1, const cuImgData& usrc2) {
@@ -263,7 +253,7 @@ void LapBlender(basic_ImgData &dst,
 
 	// 混合圖像
 	t.start();
-	WarpCyliMuitBlend(udst, uwarp1, uwarp2, corner); // 31ms
+	WarpCyliMuitBlend(udst, uwarp1, uwarp2, corner); // 31ms->23ms
 	t.print("  WarpCyliMuitBlend");
 
 	// 輸出影像
@@ -273,6 +263,14 @@ void LapBlender(basic_ImgData &dst,
 }
 
 // 範例程式
+void LapBlend_Tester2() {
+	ImgData l("img/1.bmp"), r("img/2.bmp"), b;
+	cuImgData ul(l), ur(r), ub;
+	blendLaplacianImg(ub, ul, ur);
+
+	ub.out(b);
+	b.bmp("img/__imfchg.bmp");
+}
 void LapBlend_Tester() {
 	basic_ImgData src1, src2, dst;
 	string name1, name2;
@@ -293,5 +291,8 @@ void LapBlend_Tester() {
 	t1.print(" LapBlender");
 	// 輸出圖片
 	ImgData_write(dst, "_WarpCyliMuitBlend.bmp");
+
+	LapBlend_Tester2();
 }
+
 //==================================================================================

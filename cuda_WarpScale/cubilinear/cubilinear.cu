@@ -440,11 +440,11 @@ void imgBlendHalf_kernel(const uch* imgA, const uch* imgB, uch* dst, int dstW, i
 }
 __host__
 void imgBlendHalf(const cuImgData& uimgA, const cuImgData& uimgB, cuImgData& uDst) {
+	uDst.resize(uimgA);
+
 	// 設置大小
 	int dstW = uDst.width;
 	int dstH = uDst.height;
-	uDst.resize(uimgA);
-
 	// 設置執行緒
 	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
 	dim3 grid(ceil(dstW / BLOCK_DIM_X)+1, ceil(dstH / BLOCK_DIM_Y)+1);
@@ -472,11 +472,11 @@ void imgBlendAlpha_kernel(const uch* imgA, const uch* imgB, uch* dst, int dstW, 
 }
 __host__
 void imgBlendAlpha(const cuImgData& uimgA, const cuImgData& uimgB, cuImgData& uDst) {
+	uDst.resize(uimgA);
+
 	// 設置大小
 	int dstW = uDst.width;
 	int dstH = uDst.height;
-	uDst.resize(uimgA);
-
 	// 設置執行緒
 	dim3 block(BLOCK_DIM_X, BLOCK_DIM_Y);
 	dim3 grid(ceil(dstW / BLOCK_DIM_X)+1, ceil(dstH / BLOCK_DIM_Y)+1);

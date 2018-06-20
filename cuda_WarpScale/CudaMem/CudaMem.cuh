@@ -25,7 +25,7 @@ public:
 	}
 public: // rule of five
 	CudaData(const CudaData& rhs) {
-		cout << "CudaData::ctor" << endl;
+		//cout << "CudaData::ctor" << endl;
 		malloc(rhs.len);
 		cudaMemcpy(this->gpuData, rhs.gpuData, 
 				rhs.len*sizeof(T), cudaMemcpyDeviceToDevice);
@@ -34,10 +34,10 @@ public: // rule of five
 		gpuData(std::exchange(rhs.gpuData, nullptr)), 
 		len(std::exchange(rhs.len, 0))
 	{
-		cout << "CudaData::cmove" << endl;
+		//cout << "CudaData::cmove" << endl;
 	}
 	CudaData& operator=(const CudaData& rhs) {
-		cout << "CudaData::copy" << endl;
+		//cout << "CudaData::copy" << endl;
 		if (this != &rhs) {
 			resize(rhs.len);
 			cudaMemcpy(this->gpuData, rhs.gpuData, 
@@ -46,7 +46,7 @@ public: // rule of five
 		return *this;
 	}
 	CudaData& operator=(CudaData&& rhs) noexcept {
-		cout << "CudaData::move" << endl;
+		//cout << "CudaData::move" << endl;
 		if(this != &rhs) {
 			free();
 			gpuData = std::exchange(rhs.gpuData, nullptr);
@@ -56,7 +56,7 @@ public: // rule of five
 	}
 public: // 記憶體函式轉發
 	void malloc(size_t size) {
-		cout << "CudaData malloc" << endl;
+		//cout << "CudaData malloc" << endl;
 		if(gpuData != nullptr) {throw runtime_error("malloc::gpudata is not empty.");}
 		cudaMalloc((void**)&gpuData, size*sizeof(T));
 		len = size;

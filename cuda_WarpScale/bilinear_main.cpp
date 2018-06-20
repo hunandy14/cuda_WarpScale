@@ -151,9 +151,9 @@ void test() {
 	ug3=ug1;
 	ug3.info_print(1);*/
 
-	cout << "======= ug5 =======" << endl;
+	/*cout << "======= ug5 =======" << endl;
 	cuImgData ug5=ug1;
-	ug5.info_print(1);
+	ug5.info_print(1);*/
 
 
 	/*ImgData out;
@@ -179,10 +179,10 @@ int main(){
 	//bilinear_test();
 
 	// 測試代碼
-	test();
+	//test();
 	
 	// 金字塔混和
-	//LapBlend_Tester();
+	LapBlend_Tester();
 
 	return 0;
 }

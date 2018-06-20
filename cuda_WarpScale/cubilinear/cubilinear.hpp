@@ -29,7 +29,7 @@ public:
 		height (rhs.height),
 		bits(rhs.bits)
 	{
-		cout << "cuImgData::ctor" << endl;
+		//cout << "cuImgData::ctor" << endl;
 	}
 	cuImgData(cuImgData&& rhs) noexcept:
 		CudaData(std::move(rhs)), 
@@ -37,10 +37,10 @@ public:
 		height (std::exchange(rhs.height, 0)),
 		bits   (std::exchange(rhs.bits  , 0))
 	{
-		cout << "cuImgData::cmove" << endl;
+		//cout << "cuImgData::cmove" << endl;
 	}
 	cuImgData& operator=(const cuImgData& rhs) {
-		cout << "cuImgData::copy" << endl;
+		//cout << "cuImgData::copy" << endl;
 		if (this != &rhs) {
 			resize(rhs);
 			CudaData::operator=(rhs);
@@ -51,7 +51,7 @@ public:
 		return *this;
 	}
 	cuImgData& operator=(cuImgData&& rhs) noexcept {
-		cout << "cuImgData::move" << endl;
+		//cout << "cuImgData::move" << endl;
 		if(this != &rhs) {
 			this->~cuImgData();
 			CudaData::operator=(std::move(rhs));
