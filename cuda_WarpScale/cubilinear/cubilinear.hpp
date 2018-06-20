@@ -77,19 +77,21 @@ public:
 		memcpyOut(dst.raw_img.data(), dst.raw_img.size());
 	}
 public:
-	void resize(uint32_t w, uint32_t h, uint16_t bits) {
+	void resize(uint32_t width, uint32_t height, uint16_t bits) {
 		// 空間不足重new
-		if(w*h > this->len) {
-			this->~cuImgData();
-			malloc(w*h * bits>>3);
+		if(width*height > this->len) {
+			CudaData::resize(width*height * bits>>3);
+			this->width  = width;
+			this->height = height;
+			this->bits   = bits;
 			//cout << "reNewSize" << endl;
 		} 
 		// 空間充足直接用
-		else if(w*h <= this->len) {
+		else if(width*height <= this->len) {
 			//cout << "non reNewSize" << endl;
 		}
-		this->width  = w;
-		this->height = h;
+		this->width  = width;
+		this->height = height;
 		this->bits   = bits;
 	}
 	void resize(const cuImgData& src) {

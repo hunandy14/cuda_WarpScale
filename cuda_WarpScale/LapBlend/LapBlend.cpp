@@ -124,7 +124,6 @@ void reLaplacianPyramids(cuLapPyr &upyr, cuImgData &udst, int octvs=LAP_OCTVS) {
 		WarpScale_rgb(upyr[i], expend, 2.0);
 		imgAdd(upyr[i-1], expend);
 	} 
-	cout << "===TestPoint===" << endl;
 	udst = std::move(upyr[0]);
 }
 // 混合圖片
