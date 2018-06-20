@@ -212,7 +212,6 @@ void WarpCyliMuitBlend(cuImgData &udst,
 	// 混合重疊區
 	t1.start();
 	blendLaplacianImg(ublend, ucut1, ucut2); // 53ms -> 21ms->19ms
-	cout << "=======" << endl;
 	t1.print("   blendLaplacianImg");
 	
 	// 合併三張圖片
@@ -231,7 +230,7 @@ void LapBlender(basic_ImgData &dst,
 	double ft, int mx, int my)
 {
 	Timer t;
-	t.priSta=1;
+	t.priSta=0;
 	cuImgData uwarp1, uwarp2;
 	cuImgData usrc1(src1), usrc2(src2);
 	cuImgData udst;
