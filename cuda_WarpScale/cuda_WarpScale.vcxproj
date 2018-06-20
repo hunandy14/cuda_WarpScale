@@ -60,7 +60,7 @@
       <WarningLevel>Level3</WarningLevel>
       <Optimization>Disabled</Optimization>
       <PreprocessorDefinitions>WIN32;WIN64;_DEBUG;_CONSOLE;%(PreprocessorDefinitions)</PreprocessorDefinitions>
-      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\OpenBMP;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
+      <AdditionalIncludeDirectories>$(ProjectDir);$(ProjectDir)\OpenBMP;$(CudaToolkitIncludeDir);$(ProjectDir)\CudaMem;$(ProjectDir)\cubilinear;%(AdditionalIncludeDirectories)</AdditionalIncludeDirectories>
       <OpenMPSupport>true</OpenMPSupport>
     </ClCompile>
     <Link>
