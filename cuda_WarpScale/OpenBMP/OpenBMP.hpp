@@ -8,6 +8,113 @@ Final: 2018/06/01
 #include <fstream>
 #include <vector>
 #include <string>
+#include <cmath>
+#define _USE_MATH_DEFINES
+
+#ifndef M_PI
+	#define M_PI 3.14159265358979323846
+#endif
+
+//----------------------------------------------------------------
+// 快速atan運算
+inline float fastAtan2f(float dy, float dx){
+	static const float atan2_p1 =  0.9997878412794807f*(float)(180/M_PI);
+	static const float atan2_p3 = -0.3258083974640975f*(float)(180/M_PI);
+	static const float atan2_p5 =  0.1555786518463281f*(float)(180/M_PI);
+	static const float atan2_p7 = -0.04432655554792128f*(float)(180/M_PI);
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
+
+	float ax = std::abs(dx), ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = 90.f - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+	if (dx < 0)
+		a = 180.f - a;
+	if (dy < 0)
+		a = 360.f - a;
+	return a;
+}
+inline float fastAtan2f_rad(float dy, float dx){
+	static const float atan2_p1 =  0.9997878412794807f;
+	static const float atan2_p3 = -0.3258083974640975f;
+	static const float atan2_p5 =  0.1555786518463281f;
+	static const float atan2_p7 = -0.04432655554792128f;
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
+
+	float ax = std::abs(dx), ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = M_PI*.5f - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+	if (dx < 0)
+		a = M_PI - a;
+	if (dy < 0)
+		a = M_PI*2.f - a;
+	return a;
+}
+// 快速 atan 算法
+inline float fastAtanf(float dy){
+	static const float atan2_p1 =  0.9997878412794807f*(float)(180/M_PI);
+	static const float atan2_p3 = -0.3258083974640975f*(float)(180/M_PI);
+	static const float atan2_p5 =  0.1555786518463281f*(float)(180/M_PI);
+	static const float atan2_p7 = -0.04432655554792128f*(float)(180/M_PI);
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
+
+	float ax = 1.0, ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = 90.f - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+
+	if (dy < 0)
+		a = - a;
+
+	return a;
+}
+inline float fastAtanf_rad(float dy){
+	static const float atan2_p1 =  0.9997878412794807f;
+	static const float atan2_p3 = -0.3258083974640975f;
+	static const float atan2_p5 =  0.1555786518463281f;
+	static const float atan2_p7 = -0.04432655554792128f;
+	static const float atan2_DBL_EPSILON = 2.2204460492503131e-016;
+
+	float ax = 1.0, ay = std::abs(dy);
+	float a, c, c2;
+	if (ax >= ay) {
+		c = ay/(ax + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	} else {
+		c = ax/(ay + static_cast<float>(atan2_DBL_EPSILON));
+		c2 = c*c;
+		a = M_PI*.5f - (((atan2_p7*c2 + atan2_p5)*c2 + atan2_p3)*c2 + atan2_p1)*c;
+	}
+
+	if (dy < 0)
+		a = - a;
+
+	return a;
+}
+
 
 
 //----------------------------------------------------------------
@@ -127,13 +234,13 @@ public:
 	static void raw2gray(std::vector<uch>& dst, const std::vector<uch>& src) {
 		if (&dst == &src) {
 			// 同一個來源轉換完再resize
-			for (int i = 0; i < src.size()/3; ++i)
+			for (int i = 0; i < (int)(src.size()/3); ++i)
 				dst[i] = rgb2gray(&src[i*3]);
 			dst.resize(src.size()/3);
 		} else {
 			// 通常情況先設置好大小才轉換
 			dst.resize(src.size()/3);
-			for (int i = 0; i < src.size()/3; ++i)
+			for (int i = 0; i < (int)(src.size()/3); ++i)
 				dst[i] = rgb2gray(&src[i*3]);
 		}
 	}
@@ -172,8 +279,8 @@ inline void OpenBMP::bmpRead(std::vector<uch>& dst, std::string name,
 	}
 	// 讀 Raw
 	bmp.seekg(file_h.bfOffBits, std::ios::beg);
-	dst.resize(info_h.biWidth * info_h.biHeight * (info_h.biBitCount/8));
-	size_t realW = info_h.biWidth * info_h.biBitCount/8.0;
+	dst.resize(info_h.biWidth * info_h.biHeight * (info_h.biBitCount>>3));
+	size_t realW = info_h.biWidth * info_h.biBitCount>>3;
 	size_t alig = (realW*3) % 4;
 	char* p = reinterpret_cast<char*>(dst.data());
 	for(int j = info_h.biHeight-1; j >= 0; --j) {
@@ -211,7 +318,7 @@ inline void OpenBMP::bmpWrite( std::string name, const std::vector<uch>& src,
 		}
 	}
 	// 寫入圖片資訊
-	size_t realW = info_h.biWidth * info_h.biBitCount/8.0;
+	size_t realW = info_h.biWidth * info_h.biBitCount>>3;
 	size_t alig = (realW*3) % 4;
 
 
@@ -300,32 +407,34 @@ public: // 建構子
 	explicit ImgData(basic_ImgData& imgData): basic_ImgData(imgData) {}
 
 public: // 存取方法
-	inline uch& operator[](size_t idx) {
+	uch& operator[](size_t idx) {
 		return this->raw_img[idx];
 	}
-	inline const uch& operator[](size_t idx) const {
+	const uch& operator[](size_t idx) const {
 		return this->raw_img[idx];
 	}
-	inline uch* at2d(size_t y, size_t x) {
+	uch* at2d(size_t y, size_t x) {
 		return &raw_img[(y*width + x) *(bits>>3)];
 	}
-	inline const uch* at2d(size_t y, size_t x) const {
+	const uch* at2d(size_t y, size_t x) const {
 		return &raw_img[(y*width + x) *(bits>>3)];
 	}
-	// 線性插值(快速測試用, RGB效率很差)
+	// 線性插值讀取(快速測試用, RGB效率很差)
 	std::vector<double> at2d_linear(double y, double x) const { 
 		std::vector<double> RGB(bits>>3);
+		// 獲取鄰點
+		int x0 = (int)(x);
+		int y0 = (int)(y);
 		// 整數就不算了
-		if (y==(int)y && x==(int)x) {
-			auto p = this->at2d(y, x);
-			for (int i = 0; i < RGB.size(); i++)
+		if (y==y0 && x==x0) {
+			const uch* p = at2d(y0, x0);
+			for (int i = 0; i < (int)RGB.size(); i++)
 				RGB[i] = static_cast<double>(p[i]);
 			return RGB;
 		}
+
 		// 獲取鄰點
-		int x0 = (int)(x);
 		int x1 = (x)==(int)(x)? (int)(x): (int)(x+1.0);
-		int y0 = (int)(y);
 		int y1 = (y)==(int)(y)? (int)(y): (int)(y+1.0);
 		// 獲取比例
 		double dx1 = x -  x0;
@@ -333,7 +442,8 @@ public: // 存取方法
 		double dy1 = y -  y0;
 		double dy2 = 1 - dy1;
 		// 計算插值
-		for (int i = 0; i < RGB.size(); i++) {
+#pragma omp parallel for
+		for (int i = 0; i < (int)RGB.size(); i++) {
 			// 獲取點
 			const double& A = raw_img[(y0*width + x0)*(bits>>3) + i];
 			const double& B = raw_img[(y0*width + x1)*(bits>>3) + i];
@@ -356,7 +466,7 @@ public: // 大小方法
 			return 1;
 		} return 0;
 	}
-	std::size_t size() const {
+	const size_t size() const {
 		return this->raw_img.size();
 	}
 	void resize(uint32_t width, uint32_t height, uint16_t bits) {
@@ -404,17 +514,43 @@ public: // 自訂方法
 		}
 		return img;
 	}
-	ImgData toSnip (uint32_t width, uint32_t height, uint32_t y=0, uint32_t x=0) const {
+	ImgData& convertRGB() {
+		if (bits == 8) {
+			bits = 24;
+			std::vector<unsigned char> gray = std::move(raw_img);
+			raw_img.resize(width*height *bits>>3);
+			for (int j = 0; j < (int)height; j++) {
+				for (int i = 0; i < (int)width; i++) {
+					int idx = j*width+i;
+					raw_img[idx*3+0] = gray[idx];
+					raw_img[idx*3+1] = gray[idx];
+					raw_img[idx*3+2] = gray[idx];
+				}
+			}
+		}
+		return *this;
+	}
+	ImgData toConvertRGB() const {
+		ImgData img;
+		if (bits == 24) {
+			img.bits = 8;
+
+		} else {
+			img = *this;
+		}
+		return img;
+	}
+		ImgData toSnip (uint32_t width, uint32_t height, uint32_t y=0, uint32_t x=0) const {
 		// 檢查超過邊界
 		if (width+x > this->width || height+y > this->height)
 			throw std::out_of_range("toSnip() out of range");
 		// 開始擷取
 		ImgData img(width, height, this->bits);
-		for (int j = 0; j < img.height; j++) {
-			for (int i = 0; i < img.width; i++) {
-				auto srcIt = this->at2d(j+y, i+x);
-				auto dstIt = img.at2d(j, i);
-				for (size_t rgb = 0; rgb < bits>>3; rgb++) {
+		for (uint32_t j = 0; j < img.height; j++) {
+			for (uint32_t i = 0; i < img.width; i++) {
+				const uch* srcIt = this->at2d(j+y, i+x);
+				uch* dstIt = img.at2d(j, i);
+				for (uint16_t rgb = 0; rgb < bits>>3; rgb++) {
 					dstIt[rgb] = srcIt[rgb];
 				}
 			}
@@ -427,6 +563,189 @@ public: // 畫線
 };
 
 
+
+//----------------------------------------------------------------
+class Draw {
+public:
+	static void drawLine_p(basic_ImgData& img, int y, int x, int y2, int x2, float val=200);
+	static void drawLine_s(basic_ImgData& img, int y, int x, float line_len, float sg, float val=200);
+	static void draw_arrow(basic_ImgData& img, int y, int x, float line_len, float sg, float val=200);
+
+	static void drawLineRGB_p(basic_ImgData& img, int y, int x, int y2, int x2, 
+		float r, float, float);
+	static void drawLineRGB_p(basic_ImgData& img, int y, int x, int y2, int x2);
+	static void drawLineRGB_s(basic_ImgData& img, int y, int x, float line_len, float sg);
+	static void draw_arrowRGB(basic_ImgData& img, int y, int x, float line_len, float sg);
+};
+// 畫線
+inline void Draw::drawLine_p(basic_ImgData& img, int y, int x, int y2, int x2, float val) {
+	// 兩點之間的距離差
+	float dx = static_cast<float>(x2-x);
+	float dy = static_cast<float>(y2-y);
+	// 以Y軸為主
+	float sita=fastAtan2f(dy, dx);
+	if ((sita>45 && sita<135) || (sita>225 && sita<315)) {
+		float slopeY = dx/dy; // 斜率
+		for (int i = 0; i < abs(dy); i++) {
+			int iFix = dy>0? i:-i;
+			int currPos = static_cast<int>(iFix*slopeY+.5f + x);
+
+			int distX = currPos;
+			int distY = y+iFix;
+
+			if (distX<0 or distX>=(int)img.width or distY<0 or distY>=(int)img.height) {
+				return;
+			}
+			img.raw_img[distY*img.width + distX] = static_cast<unsigned char>(val);
+		}
+	} 
+	// 以X軸為主
+	else {
+		float slopeX = dy/dx; // 斜率
+		for (int i = 0; i < abs(dx); i++) {
+			int iFix = dx>0? i:-i;
+			int currPos = static_cast<int>(iFix*slopeX+.5 + y);
+
+			int distX = x+iFix;
+			int distY = currPos;
+
+			if (distX<0 or distX>=(int)img.width or distY<0 or distY>=(int)img.height) {
+				return;
+			}
+			img.raw_img[distY*img.width + distX] = (unsigned char)val;
+		}
+	}
+}
+inline void Draw::drawLine_s(basic_ImgData& img, int y, int x, float line_len, float sg, float val) {
+	// 防呆
+	if (line_len < 0) {
+		return;
+	}
+	if (line_len==1) {
+		img.raw_img[x*img.width + y] = (unsigned char)val;
+		return;
+	}
+	// 算頭尾
+	int x2 = static_cast<int>(x + line_len*cos(sg * M_PI/180.0)+.5f);
+	int y2 = static_cast<int>(y + line_len*sin(sg * M_PI/180.0)+.5f);
+	// 畫線
+	drawLine_p(img, y, x, y2, x2, val);
+}
+inline void Draw::draw_arrow(basic_ImgData& img, int y, int x, float line_len, float sg, float val) {
+	// 防呆
+	if (line_len < 0) {
+		return;
+	}
+	if (line_len==1) {
+		img.raw_img[x*img.width + y] = (unsigned char)val;
+		return;
+	}
+	// 算頭尾
+	int x2 = (int)(x + line_len*cos(sg * M_PI/180.0)+.5);
+	int y2 = (int)(y + line_len*sin(sg * M_PI/180.0)+.5);
+	// 畫線
+	drawLine_p(img, y, x, y2, x2, val);
+	// 畫頭
+	drawLine_s(img, y2, x2, 10, sg-150, val);
+	drawLine_s(img, y2, x2, 10, sg+150, val);
+}
+// 畫線RGB
+inline void Draw::drawLineRGB_p(basic_ImgData& img, int y, int x, int y2, int x2, 
+	float r, float g, float b) {
+	// 兩點之間的距離差
+	float dx = (float)(x2-x);
+	float dy = (float)(y2-y);
+	// 以Y軸為主
+	float sita=fastAtan2f(dy, dx);
+	if ((sita>45 && sita<135) || (sita>225 && sita<315)) {
+		float slopeY = dx/dy; // 斜率
+		for (int i = 0; i < abs(dy); i++) {
+			int iFix = dy>0? i:-i;
+			int currPos = (int)(iFix*slopeY+.5 + x);
+
+			int distX = currPos;
+			int distY = y+iFix;
+
+			if (distX<0 or distX>=(int)img.width or distY<0 or distY>=(int)img.height) {
+				return;
+			}
+			size_t posi = distY*img.width + distX;
+			img.raw_img[posi*3 + 0] = (unsigned char)r;
+			img.raw_img[posi*3 + 1] = (unsigned char)g;
+			img.raw_img[posi*3 + 2] = (unsigned char)b;
+		}
+	} 
+	// 以X軸為主
+	else {
+		float slopeX = dy/dx; // 斜率
+		for (int i = 0; i < abs(dx); i++) {
+			int iFix = dx>0? i:-i;
+			int currPos = (int)(iFix*slopeX+.5 + y);
+
+			int distX = x+iFix;
+			int distY = currPos;
+
+			if (distX<0 or distX>=(int)img.width or distY<0 or distY>=(int)img.height) {
+				return;
+			}
+			size_t posi = distY*img.width + distX;
+			img.raw_img[posi*3 + 0] = (unsigned char)r;
+			img.raw_img[posi*3 + 1] = (unsigned char)g;
+			img.raw_img[posi*3 + 2] = (unsigned char)b;
+		}
+	}
+}
+inline void Draw::drawLineRGB_p(basic_ImgData& img, int y, int x, int y2, int x2) {
+	// 隨機顏色
+	auto random_num = [] {
+		return (float)((rand() / (RAND_MAX+1.0)) * (1 - 0) + 0);
+	};
+	float rVal, gVal, bVal;
+	rVal = random_num()*255.f;
+	gVal = random_num()*255.f;
+	bVal = random_num()*255.f;
+	drawLineRGB_p(img, y, x, y2, x2, rVal, gVal, bVal);
+}
+inline void Draw::drawLineRGB_s(basic_ImgData& img, int y, int x, float line_len, float sg) {
+	// 防呆
+	if (line_len < 0) {
+		return;
+	}
+	if (line_len==1) {
+		img.raw_img[x*img.width + y] = 200;
+		return;
+	}
+	// 算頭尾
+	int x2 = (int)(x + line_len*cos(sg * M_PI/180.0)+.5);
+	int y2 = (int)(y + line_len*sin(sg * M_PI/180.0)+.5);
+	// 畫線
+	drawLineRGB_p(img, y, x, y2, x2, 242, 66, 54);
+}
+inline void Draw::draw_arrowRGB(basic_ImgData& img, int y, int x, float line_len, float sg) {
+	// 防呆
+	if (line_len < 0) {
+		return;
+	}
+	if (line_len==1) {
+		img.raw_img[x*img.width + y] = 200;
+		return;
+	}
+	// 算頭尾
+	int x2 = (int)(x + line_len*cos(sg * M_PI/180.0)+.5);
+	int y2 = (int)(y + line_len*sin(sg * M_PI/180.0)+.5);
+
+	// 畫線
+	drawLineRGB_p(img, y, x, y2, x2, 242, 66, 54);
+
+	// 畫頭
+	float head_len = 6;
+	drawLineRGB_s(img, y2, x2, head_len, sg-150);
+	drawLineRGB_s(img, y2, x2, head_len, sg+150);
+}
+
+
+
+//----------------------------------------------------------------
 class ImgData_nor: public basic_ImgData {
 public:
 	ImgData_nor(std::string name) {
@@ -442,16 +761,16 @@ public:
 public:
 	void Normalization() {
 		nor_img.resize(raw_img.size());
-		#pragma omp parallel for
-		for (int i = 0; i < nor_img.size(); i++) {
-			nor_img[i] = raw_img[i] /255.0;
+#pragma omp parallel for
+		for (int i = 0; i < (int)nor_img.size(); i++) {
+			nor_img[i] = raw_img[i] /255.f;
 		}
 	}
 	void reNormalization() {
 		raw_img.resize(nor_img.size());
-		#pragma omp parallel for
-		for (int i = 0; i < nor_img.size(); i++) {
-			raw_img[i] = nor_img[i] *255.0;
+#pragma omp parallel for
+		for (int i = 0; i < (int)nor_img.size(); i++) {
+			raw_img[i] = (unsigned char)(nor_img[i] *255.f);
 		}
 	}
 public:
