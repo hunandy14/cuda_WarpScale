@@ -78,7 +78,7 @@ public:
 	}
 public:
 	void resize(uint32_t width, uint32_t height, uint16_t bits) {
-		// ªÅ¶¡¤£¨¬­«new
+		// ï¿½Å¶ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½new
 		if(width*height > this->len) {
 			CudaData::resize(width*height * bits>>3);
 			this->width  = width;
@@ -86,7 +86,7 @@ public:
 			this->bits   = bits;
 			//cout << "reNewSize" << endl;
 		} 
-		// ªÅ¶¡¥R¨¬ª½±µ¥Î
+		// ï¿½Å¶ï¿½ï¿½Rï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½ï¿½
 		else if(width*height <= this->len) {
 			//cout << "non reNewSize" << endl;
 		}
@@ -125,27 +125,27 @@ public:
 	uint16_t bits   = 0;
 };
 
-// ½Æ»s¹Ï¤ù
+// ï¿½Æ»sï¿½Ï¤ï¿½
 __host__ void imgCopy(const cuImgData & uSrc, cuImgData & uDst);
 
-// ½u©Ê´¡¸É
+// ï¿½uï¿½Ê´ï¿½ï¿½ï¿½
 __host__ void WarpScale_rgb(const cuImgData & uSrc, cuImgData & uDst, double ratio);
 __host__ void WarpScale_rgb(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 __host__ void cuWarpScale_kernel_test(const basic_ImgData & src, basic_ImgData & dst, double ratio);
 
-// ¹Ï¤ù¬Û´î
+// ï¿½Ï¤ï¿½ï¿½Û´ï¿½
 __host__ void imgSub(cuImgData & uSrc, const cuImgData & uDst);
-// ¹Ï¤ù¬Û¥[
+// ï¿½Ï¤ï¿½ï¿½Û¥[
 __host__ void imgAdd(cuImgData & uSrc, const cuImgData & uDst);
-// °ª´µ¼Ò½k
+// ï¿½ï¿½ï¿½ï¿½ï¿½Ò½k
 __host__ void GaussianBlur(const cuImgData & uSrc, cuImgData & uDst, int matLen, double sigma=0);
 
-// ª÷¦r¶ð²V©M
+// ï¿½ï¿½ï¿½rï¿½ï¿½Vï¿½M
 __host__ void imgBlendHalf(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
 __host__ void imgBlendAlpha(const cuImgData & uimgA, const cuImgData & uimgB, cuImgData & uDst);
 __host__ void mergeOverlap(const cuImgData & usrc1, const cuImgData & usrc2, const cuImgData & ublend, cuImgData & udst, vector<int> corner);
 __host__ void getOverlap(const cuImgData & uSrc, const cuImgData & uSrc2, cuImgData & ucut1, cuImgData & ucut2, vector<int> corner);
-// ¶ê¬W§ë¼v
+// ï¿½ï¿½Wï¿½ï¿½v
 __host__ void WarpCylindrical(const cuImgData & uSrc, cuImgData & uDst, double R, int mx=0, int my=0, double edge=0.0);
 __host__ void WarpCyliCorner(const cuImgData & uSrc, CudaData<int>& ucorner, int mx, int my);
 

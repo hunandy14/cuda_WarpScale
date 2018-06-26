@@ -15,7 +15,8 @@
                 "${workspaceFolder}/Timer",
                 "${workspaceFolder}/LapBlend",
                 "${workspaceFolder}/cubilinear",
-                "${workspaceFolder}"
+                "${workspaceFolder}",
+                "${workspaceFolder}/header"
             ],
             "defines": [],
             "compilerPath": "/usr/bin/gcc",

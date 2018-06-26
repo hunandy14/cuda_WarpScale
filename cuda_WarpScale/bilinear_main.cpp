@@ -14,8 +14,8 @@ using namespace std;
 #include "OpenBMP.hpp"
 #include "Timer.hpp"
 
-#include "cubilinear/cubilinear.hpp"
-#include "LapBlend/LapBlend.hpp"
+#include "cubilinear.hpp"
+#include "LapBlend.hpp"
 
 vector<float> tofloat(const unsigned char* img, size_t size) {
 	vector<float> temp(size);
